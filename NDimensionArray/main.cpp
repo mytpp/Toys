@@ -1,15 +1,14 @@
-/**************************************************************************
+/*****************************************************************************************
 Developer: Peipei Tan (mytpp)
 Update: 2018-8
 
 A simple test and example uses for template NDimArray
-**************************************************************************/
+*****************************************************************************************/
 
 #ifdef _MSC_VER
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-//#define new  new(_CLIENT_BLOCK, __FILE__, __LINE__)
 #endif
 
 #include "NDimArray.h"
@@ -18,7 +17,7 @@ A simple test and example uses for template NDimArray
 using namespace std;
 using namespace mytpp;
 
-/////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -79,6 +78,6 @@ int main()
 	_CrtDumpMemoryLeaks();
 #endif
 
-	system("pause");
+	//system("pause");
 	return 0;
 }
