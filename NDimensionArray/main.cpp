@@ -28,8 +28,8 @@ int main()
 								//with template parameter of type "size_t"
 		//NDimArray<int> c;	    //compile error: too few arguments for class template "NDimArray"
 		NDimArray<double, 2, 3, 4> d;
-		NDimArray<bool, 2, 2, 2, 2, 2, 2> e;
-		NDimArray<long long, 100, 100> bigArray;
+		const NDimArray<bool, 2, 2, 2, 2, 2, 2> e;
+		const NDimArray<long long, 100, 100> bigArray;
 		NDimArray<int, 3, 4> copyImage(a);                  //test copy constructor
 		NDimArray<double, 2, 3, 4> moveImage(std::move(d)); //test move constructor
 

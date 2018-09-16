@@ -38,20 +38,20 @@ namespace mytpp {
 
 
 		//Return the dimension of this array
-		size_t dim() {
+		size_t dim() const {
 			return sizeof...(args) + 1;
 		}
 
 		//Return # of elements in dimension 'dim'.
 		//Note that 'dim' starts from 0.
-		size_t size_of_dim(size_t dim) {
+		size_t size_of_dim(size_t dim) const {
 			assert(dim <= sizeof...(args) + 1);
 			size_t tmp[] = { dim_size, args... };
 			return tmp[dim];
 		}
 
 		//Return the total # of elements in this array
-		size_t size() {
+		size_t size() const {
 			return value.size();
 		}
 
@@ -60,20 +60,26 @@ namespace mytpp {
 		//NDimArray<int, 50, 100> a;  a[17][18] = 2333;
 		//Return a proxy class which also overloads operator[]
 		//The true element is returned at the partial specialization version
-		NDimArray<T, args...>&  operator[] (size_t index) {
+		const NDimArray<T, args...>&  operator[] (size_t index) const{
 			assert(index < dim_size);
 			value.setOffset(m_offset*dim_size + index);
 			return value;
 		}
 
+		NDimArray<T, args...>&  operator[] (size_t index) {
+			return const_cast< NDimArray<T, args...>& >(
+				static_cast<const NDimArray&>(*this)[index]
+				);
+		}
+
 		//This is only for implementation
-		void setOffset(size_t offset) {
+		void setOffset(size_t offset) const {
 			m_offset = offset;
 		}
 
 
 	private:
-		size_t m_offset;             //current offset
+		mutable size_t m_offset;     //current offset
 		NDimArray<T, args...> value; //proxy class
 	};
 
@@ -155,28 +161,34 @@ namespace mytpp {
 		}
 
 
-		size_t dim() {
+		size_t dim() const {
 			return 1;
 		}
 
-		size_t size_of_dim(size_t dim) {
+		size_t size_of_dim(size_t dim) const {
 			assert(dim == 0);
 			return dim_size;
 		}
 
-		size_t size() {
+		size_t size() const {
 			return m_size;
 		}
 
 
-		//Return a real elements of type 'T' at the calculated position
-		T& operator[] (size_t index) {
+		//Return a real element of type 'T' at the calculated position
+		const T& operator[] (size_t index) const {
 			assert(index < dim_size);
 			return value[m_offset*dim_size + index];
 		}
 
+		T& operator[] (size_t index) {
+			return const_cast<T&>(
+				static_cast<const NDimArray&>(*this)[index]
+				);
+		}
+
 		//This is only for implementation
-		void setOffset(size_t offset) {
+		void setOffset(size_t offset) const {
 			m_offset = offset;
 		}
 
@@ -189,10 +201,10 @@ namespace mytpp {
 		}
 
 	private:
-		size_t m_offset;// the position of element returned by operator[]
-		size_t m_size;  // # of elements in the array
+		mutable size_t m_offset;// the position of element returned by operator[]
+		size_t m_size;          // # of elements in the array
 
-		T* value;       // the memery block storing elements of type 'T'
+		T* value;               // the memery block storing elements of type 'T'
 	};
 }
 
