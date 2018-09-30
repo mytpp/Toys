@@ -1,6 +1,6 @@
 /*****************************************************************************
 Developer: Peipei Tan (mytpp)
-Update: 2018-8
+Update: 2018-9
 
 A implementation for n-dimension-array
 *****************************************************************************/
@@ -45,7 +45,7 @@ namespace mytpp {
 		//Return # of elements in dimension 'dim'.
 		//Note that 'dim' starts from 0.
 		size_t size_of_dim(size_t dim) const {
-			assert(dim <= sizeof...(args) + 1);
+			assert(dim <= sizeof...(args));
 			size_t tmp[] = { dim_size, args... };
 			return tmp[dim];
 		}
@@ -120,10 +120,10 @@ namespace mytpp {
 		//copy assignment operator
 		NDimArray& operator=(const NDimArray& rhs) {
 			//Offer strong exception safety guarantee
-			T* old_memery = value;
+			T* old_memory = value;
 			value = static_cast<T*>(
 				::operator new(sizeof(T)*rhs.m_size));
-			delete old_memery;
+			delete old_memory;
 			do_copy(value, rhs.value, rhs.m_size);
 
 			m_offset = rhs.m_offset;
@@ -204,7 +204,7 @@ namespace mytpp {
 		mutable size_t m_offset;// the position of element returned by operator[]
 		size_t m_size;          // # of elements in the array
 
-		T* value;               // the memery block storing elements of type 'T'
+		T* value;               // the memory block storing elements of type 'T'
 	};
 }
 

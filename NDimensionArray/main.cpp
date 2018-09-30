@@ -1,6 +1,6 @@
 /*****************************************************************************************
 Developer: Peipei Tan (mytpp)
-Update: 2018-8
+Update: 2018-9
 
 A simple test and example uses for template NDimArray
 *****************************************************************************************/
@@ -42,6 +42,7 @@ int main()
 		assert(d.size_of_dim(0) == 2);
 		assert(d.size_of_dim(1) == 3);
 		assert(d.size_of_dim(2) == 4);
+		//assert(d.size_of_dim(3) == 4);  //assertion failed
 
 		//test for member function NDimArray<..>::size()
 		assert(a.size() == 12);
