@@ -13,7 +13,7 @@ CAnalyzer::CAnalyzer(const std::string& srcPath) try
 	, end(false)
 	, error(false)
 	//,errorMessage()
-	, statistics(new Statistics{ 0, -1, 0 })
+	, statistics(new Statistics{ 1, -1, 0 })
 { }
 catch (std::runtime_error& e) {
 	std::cout << e.what() << std::endl;
@@ -69,7 +69,7 @@ bool CAnalyzer::eat(const char letter)
 		resetItem();
 		if (isspace(letter))
 			break;
-		else if (isalpha(letter)) 
+		else if (isalpha(letter) || letter == '_')
 		{
 			state = 1;
 			item.token += letter;
@@ -116,12 +116,14 @@ bool CAnalyzer::eat(const char letter)
 			errorMessage = "eof"; 
 			break;
 
-		default: state = ERROR; break;
+		default: 
+			handleIllegalIdentifier();
+			return false;
 		}
 		break;
 
 	case 1: 
-		if (isalnum(letter))
+		if (isalnum(letter) || letter == '_')
 			item.token += letter;
 		else
 		{
@@ -413,11 +415,6 @@ bool CAnalyzer::eat(const char letter)
 		else
 			state = 28;
 		break;
-
-
-	case ERROR:
-		handleIllegalIdentifier();
-		return false;
 
 	default:
 		handleIllegalState();

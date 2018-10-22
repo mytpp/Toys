@@ -1,12 +1,10 @@
 #include "CAnalyzer.h"
 
 #include<iostream>
-#include<fstream>
 
 int main()
 {
 	CAnalyzer analyzer("src.c");
-	std::fstream out("out.txt");
 	
 	bool goOn = true;
 
@@ -30,7 +28,7 @@ int main()
 	auto& stat = analyzer.getStatisticsInfo();
 	std::cout << "lineCount:    " << stat->lineCount << std::endl;
 	std::cout << "charCount:    " << stat->charCount << std::endl;
-	std::cout << "errorCount:    " << stat->errorCount << std::endl;
+	std::cout << "errorCount:   " << stat->errorCount << std::endl;
 
 	for (const auto& token : stat->tokens)
 	{

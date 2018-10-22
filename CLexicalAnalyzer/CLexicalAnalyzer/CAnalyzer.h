@@ -21,9 +21,7 @@ private:
 	{
 		int lineCount;
 		int charCount;
-
 		int errorCount;
-
 		std::unordered_map<std::string, size_t> tokens;
 	};
 
@@ -53,11 +51,26 @@ private:
 	void logToken(const std::string& token);
 
 	void continueRunning();
+	
+	void handleIllegalNumber() { 
+		errorMessage = "ERROR(line "+ std::to_string(statistics->lineCount) +"): Illegal Number"; 
+		continueRunning(); 
+	}
 
-	void handleIllegalNumber()      { errorMessage = "ERROR: Illegal Number"; continueRunning(); }
-	void handleIllegalIdentifier()  { errorMessage = "ERROR: Illegal lIdentifier"; continueRunning(); }
-	void handleIllegalCharLiteral() { errorMessage = "ERROR: Illegal Charater Literal"; continueRunning(); }
-	void handleIllegalState()       { errorMessage = "ERROR: Illegal State"; continueRunning(); }
+	void handleIllegalIdentifier() { 
+		errorMessage = "ERROR(line " + std::to_string(statistics->lineCount) + "): Illegal lIdentifier"; 
+		continueRunning(); 
+	}
+
+	void handleIllegalCharLiteral() { 
+		errorMessage = "ERROR(line " + std::to_string(statistics->lineCount) + "): Illegal Charater Literal"; 
+		continueRunning(); 
+	}
+
+	void handleIllegalState() { 
+		errorMessage = "ERROR(line " + std::to_string(statistics->lineCount) + "): Illegal State"; 
+		continueRunning(); 
+	}
 
 
 
@@ -76,8 +89,6 @@ private:
 
 	std::unique_ptr<Statistics> statistics;
 
-
-	static constexpr int ERROR = -2;
 	static const std::array<const char*, 34> keyWords;
 };
 

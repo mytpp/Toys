@@ -40,17 +40,8 @@ bool DoubleBuffer::readFileWithEOF(char(&buffer)[bufferSize])
 	if (!src.read(&buffer[0], bufferSize))
 	{
 		buffer[src.gcount()] = eof;
-		
-		/*for (auto e : buffer) {
-		std::cout << e;
-		}*/
-
 		return false;
 	}
-
-	//for (auto e : buffer) {
-	//	std::cout << e;
-	//}
 
 	return true;
 }
