@@ -23,7 +23,7 @@ int main()
 	}
 
 	std::cout << "\n\n";
-	std::cout << std::string(30, '*') << std::endl;
+	std::cout << std::string(30, '*') <<"statistical information"<< std::string(30, '*') << std::endl;
 
 	auto& stat = analyzer.getStatisticsInfo();
 	std::cout << "lineCount:    " << stat->lineCount << std::endl;
@@ -35,7 +35,6 @@ int main()
 		std::cout << token.first+':' << token.second << std::endl;
 	}
 
-	system("pause");
 	return 0;
 }
 

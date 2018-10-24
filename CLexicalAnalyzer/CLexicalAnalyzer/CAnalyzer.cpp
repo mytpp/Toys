@@ -60,7 +60,7 @@ bool CAnalyzer::isKey(const std::string & lexeme)
 	return false;
 }
 
-//eat a charater to push the automachine to go
+
 bool CAnalyzer::eat(const char letter)
 {
 	switch (state)

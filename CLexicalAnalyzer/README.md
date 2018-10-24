@@ -9,4 +9,5 @@ By the way, the double buffer in my code is not considered useful because most o
 ***
 
 **To compile the code, make sure C++17 is supported.**  
-You need to turn C++17 on manually in VS2017, because by default, C++14 is on.
+You need to turn C++17 on manually in VS2017, because by default, C++14 is on.   
+Project -> [project name] Property -> C/C++ -> Language ->C++ Language Standard: ISO C++17 Standard (/std:c++17)
