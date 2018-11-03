@@ -1,2 +1,2 @@
 # Toys
-Some toy programs for fun
+Some course works.
