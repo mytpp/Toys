@@ -20,7 +20,7 @@ BoardsArea::BoardsArea(QWidget *parent) : QWidget(parent)
         button->setText(boardName);
 
         buttonList.append(button);
-        boardsLayout->addWidget(button);
+        boardsLayout->addWidget(button, Qt::AlignTop);
 
 
         //access postArea
@@ -44,4 +44,6 @@ BoardsArea::BoardsArea(QWidget *parent) : QWidget(parent)
 
     });//end for_each
 
+    //add a placeholder to make the buttons align top
+    boardsLayout->addStretch();
 }

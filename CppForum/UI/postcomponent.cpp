@@ -3,6 +3,7 @@
 #include "Forum/post.h"
 #include "Forum/forum.h"
 #include "UI/postsarea.h"
+#include <QDebug>
 
 
 PostComponent::PostComponent(QWidget *parent) : QWidget(parent)
@@ -15,7 +16,7 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     ,index(index)
 {
     vLayout = new QVBoxLayout(this);
-    hLayout = new QHBoxLayout(this);
+    hLayout = new QHBoxLayout();
 
     //title
     title = new QLabel(this);
@@ -25,14 +26,16 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     //content
     content = new QTextBrowser(this);
     content->setText(post.Content());
-    content->setMinimumWidth(400);
-    content->setMinimumHeight(150);
+    content->setMaximumHeight(200);
     vLayout->addWidget(content);
 
-    //comment
+    //comment button
     comments = new QPushButton(this);
     auto commentsCount = post.Comments().size();
     comments->setText(QString::number(commentsCount) + tr(" Comments"));
+    hLayout->addStretch();   //placeholder to make button align right
+    hLayout->addWidget(comments);
+    vLayout->addLayout(hLayout);
 
     //"Delete" button conditional appears
     auto&& status = User::Get()->GetProfile().status;

@@ -6,8 +6,6 @@
 
 UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
 {
-    qDebug()<<"in user info";
-
     auto profile = User::Get()->GetProfile();
 
 //    userId = new QLabel(this);
@@ -43,5 +41,6 @@ UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
     connect(logoutButton, &QPushButton::clicked, []{
         User::Get()->Logout();
     });
-    qDebug()<<"out of user info";
+
+    this->setMaximumHeight(50);
 }

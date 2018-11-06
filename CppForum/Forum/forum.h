@@ -34,7 +34,7 @@ public:
     std::vector<QString> GetBoardNames() const;
 
     void SetCurBoard(size_t index);
-    Board& GetCurBoard() { qDebug()<<"getcurbo"; return *curBoard; }
+    Board& GetCurBoard() { return *curBoard; }
 
 
     /*-----------------------Static Method------------------------*/
@@ -46,6 +46,9 @@ public:
 
 signals:
     void ReadyToDraw();
+
+private:
+    bool GetBoards();
 
 private:
     std::vector<Board> boards;

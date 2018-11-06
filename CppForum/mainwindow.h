@@ -28,6 +28,10 @@ public slots:
 private:
     LoginDialog *loginUI;
 
+    //Since the QMainWindow class already has a layout,
+    //we need to use a container(QWidget) to hold our own
+    //layout (inside the QMainWindow's default layout)
+    QWidget *container;
     QVBoxLayout *vLayout;
     UserInfoBar *infoBar;
     QSplitter *mainArea;

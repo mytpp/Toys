@@ -2,6 +2,7 @@
 #define POSTSAREA_H
 
 #include <QVBoxLayout>
+#include <QLabel>
 #include <QTextEdit>
 #include <QLineEdit>
 #include <QScrollArea>
@@ -26,9 +27,13 @@ private:
 
     QList<PostComponent*> postComponents;
 
+    //An area to add new post to the forum is needed.
+    //That's what the following variables for
     QFrame *newPostArea;
-    QTextEdit *contentEdit;
+    QLabel *titleLabel;
     QLineEdit *titleEdit;
+    QLabel *contentLabel;
+    QTextEdit *contentEdit;
     QPushButton *postButton;
 };
 

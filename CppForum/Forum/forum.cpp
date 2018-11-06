@@ -1,6 +1,8 @@
 #include "forum.h"
 #include <algorithm>
 #include <iterator>
+#include <QUuid>
+#include <QDate>
 
 namespace std {
     //make QString hashable
@@ -15,7 +17,8 @@ std::unordered_map<QString, Forum::UserInfo> Forum::users;
 
 Forum::Forum()
 {
-    //read data from file
+    GetBoards();
+    curBoard = boards.begin();
 }
 
 Forum::~Forum() {}
@@ -41,7 +44,6 @@ void Forum::SetCurBoard(size_t index) {
 }
 
 Forum& Forum::Get() {
-    qDebug()<<"get";
     static Forum _forum;
     return _forum;
 }
@@ -73,8 +75,77 @@ QString Forum::SelectNameWhereIdEqualTo(QString id) {
     }
 }
 
+bool Forum::GetBoards() {
+    boards = {
+        {//Board 1
+            "C++11/14",
+            {//Posts lists
+                {//Post 1
+                    QUuid::createUuid().toString(),
+                    "333",
+                    "lambda-calculus",
+                    "Qt Creator's C++ compliler frontend doesn't support init capture",
+                    QDate::currentDate().addDays(-2),
+                    {}
+                },
+                {//Post 2
+                    QUuid::createUuid().toString(),
+                    "222",
+                    "memory model",
+                    "What's new about C++'s memory model in the C++14 standard?",
+                    QDate::currentDate().addDays(-1),
+                    {}
+                }
+            }
+        },
+        {//Board 2
+            "C++17",
+            {//Posts lists
+                {//Post 1
+                    QUuid::createUuid().toString(),
+                    "111",
+                    "structured binding",
+                    "I used structured binding in my C lexical analyzer!",
+                    QDate::currentDate().addMonths(-1),
+                    {//comments
+                        {//1st
+                            "123",
+                            "Awesome!",
+                            QDate::currentDate().addDays(-15)
+                        },
+                        {//2nd
+                            "222",
+                            "Why my MSVC doesn's compile the C++17 code?",
+                            QDate::currentDate().addDays(-10)
+                        }
+                    }
+                },
+                {//Post 2
+                    QUuid::createUuid().toString(),
+                    "444",
+                    "file system",
+                    "Can I use C++'s filesystem to implement a FUSE supported network storage?",
+                    QDate::currentDate().addDays(-7),
+                    {//comments
+                        {//1st
+                            "111",
+                            "I also want to know the answer...",
+                            QDate::currentDate().addDays(-2)
+                        }
+                    }//end comments
+                }//end post 2
+            }//end posts list
+        }//end board 2
+    };
+    return true;
+}
+
 void Forum::SetExistUsers(){
     users.insert({"123", {infrastructure::COMMON_USER, 0, "pp", "456" } });
-    users.insert({"1", {infrastructure::COMMON_USER, 0, "a_user", "1"} });
+    users.insert({"111", {infrastructure::MODERATOR, 0, "a_user", "111"} });
+    users.insert({"222", {infrastructure::COMMON_USER, 0, "b_user", "222"} });
+    users.insert({"333", {infrastructure::COMMON_USER, 0, "c_user", "333"} });
+    users.insert({"444", {infrastructure::COMMON_USER, 0, "c_user", "444"} });
+
 }
 

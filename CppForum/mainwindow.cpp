@@ -6,12 +6,13 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-
     loginUI = new LoginDialog(this);
     loginUI->show();
 
+    container = new QWidget(this);
+    this->setCentralWidget(container);
+
     connect(&Forum::Get(), &Forum::ReadyToDraw, [=]{
-        qDebug()<<"in";
         infoBar = new UserInfoBar(this);qDebug()<<"0";
 
         //main area
@@ -20,19 +21,21 @@ MainWindow::MainWindow(QWidget *parent)
         postArea = new PostsArea(this);  qDebug()<<"3";
         mainArea->addWidget(boardArea);  qDebug()<<"4";
         mainArea->addWidget(postArea);   qDebug()<<"5";
+        mainArea->setStretchFactor(0, 1);
+        mainArea->setStretchFactor(1, 3);
 
-        //set layout
-        vLayout = new QVBoxLayout(this); qDebug()<<"6";
+        //set layout of the main window
+        vLayout = new QVBoxLayout(container); qDebug()<<"6";
         vLayout->addWidget(infoBar);
         vLayout->addWidget(mainArea);
 
+        this->resize(800, 600);
         this->show();
     });
 }
 
 MainWindow::~MainWindow()
 {
-
 }
 
 void MainWindow::RefreshPostArea() {

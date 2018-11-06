@@ -7,7 +7,9 @@
 class Board final
 {
 public:
-    Board(const QString& name, const QString moderatorId = "");
+    Board(const QString& name, const std::list<Post>& posts);
+    Board(const QString& name, const QString& moderatorId,
+          const std::list<Post>& posts);
 
     const QString&         ModeratorId() const { return moderatorId; }
     const QString&         Name()        const { return name; }

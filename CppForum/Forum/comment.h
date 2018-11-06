@@ -1,17 +1,18 @@
 #ifndef COMMENT_H
 #define COMMENT_H
 
-#include <QObject>
 #include <QString>
 #include <QDate>
 
 class Comment
 {
 public:
-    Comment();
+    Comment(const QString& author,
+            const QString& content,
+            const QDate birthday);
 
 private:
-    QString id;
+    QString author;
     QString content;
     QDate birthday;
 };

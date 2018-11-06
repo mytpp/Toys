@@ -4,12 +4,12 @@
 #include "Forum/comment.h"
 #include "infrastructure.h"
 
-class Post: public QObject
+class Post final
 {
-    Q_OBJECT
 public:
-    Post(const QString& id, const QString& poster, const QString& title,
-         const QString& content, QDate birthday);
+    Post(const QString& id, const QString& poster,
+         const QString& title, const QString& content,
+         const QDate birthday, const std::list<Comment>& comments = {});
 
     //add itself to VBoxlayout
     void Show(infrastructure::Status status = infrastructure::Status::ANONYMOUS);

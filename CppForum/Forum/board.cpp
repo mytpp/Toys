@@ -3,12 +3,17 @@
 #include <QDate>
 #include <iterator>
 
-Board::Board(const QString& name, const QString moderatorId)
+Board::Board(const QString &name, const std::list<Post> &posts)
+    :name(name)
+    ,posts(posts)
+{ }
+
+Board::Board(const QString &name, const QString &moderatorId,
+             const std::list<Post>& posts)
     :name(name)
     ,moderatorId(moderatorId)
-{
-
-}
+    ,posts(posts)
+{ }
 
 bool Board::AddPost(const QString& guid, const QString &title, const QString &content){
     posts.emplace_back(
