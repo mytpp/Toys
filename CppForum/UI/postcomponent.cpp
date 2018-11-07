@@ -3,6 +3,7 @@
 #include "Forum/post.h"
 #include "Forum/forum.h"
 #include "UI/postsarea.h"
+#include "UI/commentsdialog.h"
 #include <QDebug>
 
 
@@ -37,15 +38,25 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     hLayout->addWidget(comments);
     vLayout->addLayout(hLayout);
 
+    //connect 'comment' button to commentsdialog
+    connect(comments, &QPushButton::clicked,
+            [=]{
+        commentsDialog = new CommentsDialog(post, this);
+        commentsDialog->show();
+    });
+
     //"Delete" button conditional appears
+    //check if the requirement is met
     auto&& status = User::Get()->GetProfile().status;
     auto& curModerator = Forum::Get().GetCurBoard().ModeratorId();
+
     if( status == infrastructure::MODERATOR
             && User::Get()->Id() == curModerator
         || status == infrastructure::COMMON_USER
             && User::Get()->Id() == post.Poster()) {
         deletePost = new QPushButton(this);
         deletePost->setText(tr("Delete"));
+        hLayout->addWidget(deletePost);
 
         //link delete button to another signal to pass parameter
         connect(deletePost, &QPushButton::clicked,
@@ -56,7 +67,9 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
             }
         });
 
-        connect(this, &PostComponent::DeletePostAtIndex,
+        //reemit the signal to pass a paramater
+        connect(this,
+                &PostComponent::DeletePostAtIndex,
                 qobject_cast<PostsArea*>(this->parent()),
                 &PostsArea::OnDeletePost);
     }

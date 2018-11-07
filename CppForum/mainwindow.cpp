@@ -19,8 +19,11 @@ MainWindow::MainWindow(QWidget *parent)
         mainArea = new QSplitter(this);  qDebug()<<"1";
         boardArea = new BoardsArea(this);qDebug()<<"2";
         postArea = new PostsArea(this);  qDebug()<<"3";
+        scrollArea = new QScrollArea(this);
+        scrollArea->setWidget(postArea);
+
         mainArea->addWidget(boardArea);  qDebug()<<"4";
-        mainArea->addWidget(postArea);   qDebug()<<"5";
+        mainArea->addWidget(scrollArea);   qDebug()<<"5";
         mainArea->setStretchFactor(0, 1);
         mainArea->setStretchFactor(1, 3);
 
@@ -41,4 +44,8 @@ MainWindow::~MainWindow()
 void MainWindow::RefreshPostArea() {
     delete postArea;
     postArea = new PostsArea(this);
+    scrollArea->setWidget(postArea);
+    mainArea->addWidget(scrollArea);
+    //mainArea->setStretchFactor(0, 1);
+    mainArea->setStretchFactor(1, 3);
 }

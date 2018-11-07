@@ -10,7 +10,7 @@
 #include <QDebug>
 
 
-PostsArea::PostsArea(QWidget *parent) : QScrollArea(parent)
+PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
 {
     postsLayout = new QVBoxLayout(this);
     postsLayout->setMargin(20);
@@ -62,7 +62,7 @@ PostsArea::PostsArea(QWidget *parent) : QScrollArea(parent)
 
         //link postButton to its callback
         connect(postButton, &QPushButton::clicked,
-                [&,contentEdit = contentEdit, titleEdit = titleEdit,
+                [&, contentEdit = contentEdit, titleEdit = titleEdit,
                 &postComponents = postComponents, this]{
 
             //get post's content
@@ -95,13 +95,17 @@ PostsArea::PostsArea(QWidget *parent) : QScrollArea(parent)
                             postComponents.size(),
                             this);//end new PostComponent()
                 postComponents.append(postComponent);
+                postsLayout->addWidget(postComponent);
+
+                titleEdit->clear();
+                contentEdit->clear();
             }//end if
 
         });//end lambda and connect
     }
 
-    //add placeholder
-    postsLayout->addStretch();
+//    //add placeholder
+//    postsLayout->addStretch();
 }
 
 void PostsArea::OnDeletePost(int index) {

@@ -5,13 +5,12 @@
 #include <QLabel>
 #include <QTextEdit>
 #include <QLineEdit>
-#include <QScrollArea>
 #include <QPushButton>
 #include <QList>
 
 class PostComponent;
 
-class PostsArea : public QScrollArea
+class PostsArea: public QWidget
 {
     Q_OBJECT
 public:

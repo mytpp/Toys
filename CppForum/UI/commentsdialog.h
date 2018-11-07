@@ -2,13 +2,18 @@
 #define COMMENTSDIALOG_H
 
 #include <QDialog>
+#include <QVBoxLayout>
+#include <QList>
+
+class Post;
 
 class CommentsDialog : public QDialog
 {
 public:
-    CommentsDialog(QWidget *parent = 0);
+    CommentsDialog(const Post& post, QWidget *parent = 0);
 
 private:
+    QVBoxLayout *commentLayout;
 
 };
 

@@ -10,6 +10,7 @@
 #include "infrastructure.h"
 
 class Post;
+class CommentsDialog;
 
 class PostComponent : public QWidget
 {
@@ -30,6 +31,8 @@ private:
 
     QVBoxLayout *vLayout;
     QHBoxLayout *hLayout;
+
+    CommentsDialog *commentsDialog;
 };
 
 #endif // POSTCOMPONENT_H

@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QSplitter>
 #include <QVBoxLayout>
+#include <QScrollArea>
 #include "UI/logindialog.h"
 #include "UI/userinfobar.h"
 #include "UI/postsarea.h"
@@ -34,8 +35,10 @@ private:
     QWidget *container;
     QVBoxLayout *vLayout;
     UserInfoBar *infoBar;
+
     QSplitter *mainArea;
     BoardsArea *boardArea;
+    QScrollArea *scrollArea;//contain postArea
     PostsArea *postArea;
 };
 

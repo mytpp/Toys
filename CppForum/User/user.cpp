@@ -44,6 +44,7 @@ infrastructure::Error User::TryLogin(QString id, QString password){
         default:
             break;
         }
+        _user->id = id;
         _user->name = response.name;
         _user->password = password;
     }
