@@ -3,12 +3,11 @@
 
 #include <QVBoxLayout>
 #include <QLabel>
-#include <QTextEdit>
-#include <QLineEdit>
 #include <QPushButton>
 #include <QList>
 
 class PostComponent;
+class PostEdit;
 
 class PostsArea: public QWidget
 {
@@ -18,22 +17,13 @@ public:
 
 public slots:
     void OnDeletePost(int index);
+    void OnAddPost(const QString& title, const QString& content);
 
 private:
     QVBoxLayout *postsLayout;
-
     QPushButton *assignModeratorButton;
-
     QList<PostComponent*> postComponents;
-
-    //An area to add new post to the forum is needed.
-    //That's what the following variables for
-    QFrame *newPostArea;
-    QLabel *titleLabel;
-    QLineEdit *titleEdit;
-    QLabel *contentLabel;
-    QTextEdit *contentEdit;
-    QPushButton *postButton;
+    PostEdit *postEdit;
 };
 
 #endif // POSTSAREA_H

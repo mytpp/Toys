@@ -51,7 +51,8 @@ SOURCES += \
     User/user.cpp \
     main.cpp \
     mainwindow.cpp \
-    UI/commentsdialog.cpp
+    UI/commentsdialog.cpp \
+    UI/postedit.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -80,4 +81,5 @@ HEADERS += \
     User/user.h \
     infrastructure.h \
     mainwindow.h \
-    UI/commentsdialog.h
+    UI/commentsdialog.h \
+    UI/postedit.h
