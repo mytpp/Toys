@@ -1,4 +1,6 @@
 #include "post.h"
+#include "User/user.h"
+#include "QDate"
 
 Post::Post(const QString& id, const QString& poster,
            const QString& title, const QString& content,
@@ -11,4 +13,11 @@ Post::Post(const QString& id, const QString& poster,
     ,comments(comments)
 {
 
+}
+
+bool Post::AddComment(const QString &content) const {
+    comments.emplace_back(User::Get()->Id(),
+                          content,
+                          QDate::currentDate());
+    return true;
 }

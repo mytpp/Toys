@@ -23,6 +23,7 @@ public:
     const QDate&   Date()   const { return birthday; }
 
     const std::list<Comment>& Comments() const { return comments; }
+    bool AddComment(const QString& content) const;
 
 private:
     QString id;
@@ -31,7 +32,7 @@ private:
     QString content;
     QDate birthday;
 
-    std::list<Comment> comments;
+    mutable std::list<Comment> comments;
 };
 
 #endif // POST_H

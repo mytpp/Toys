@@ -43,14 +43,13 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
         postEdit = new PostEdit(this);
         postsLayout->addWidget(postEdit);
     }
-
-    //add placeholder
-    //postsLayout->addStretch(1);
 }
 
 void PostsArea::OnDeletePost(int index) {
-    delete postComponents[index];
-    postComponents.removeAt(index);
+    if(Forum::Get().GetCurBoard().DeletePost(index)) {
+        delete postComponents[index];
+        postComponents.removeAt(index);
+    }
 }
 
 void PostsArea::OnAddPost(const QString &title, const QString &content) {

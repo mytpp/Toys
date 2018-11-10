@@ -3,6 +3,10 @@
 
 #include <QDialog>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QScrollArea>
+#include <QFrame>
+#include <QLineEdit>
 #include <QList>
 
 class Post;
@@ -13,8 +17,23 @@ public:
     CommentsDialog(const Post& post, QWidget *parent = 0);
 
 private:
-    QVBoxLayout *commentLayout;
+    void AddGraphicalComment(const QString& author,
+                             const QString& date,
+                             const QString& content);
+    void OnAddComment(const QString& content);
+    void CreateCommentEdit();
 
+private:
+    const Post& post;
+
+    QVBoxLayout *dialogLayout;
+    QVBoxLayout *commentLayout;
+    QScrollArea *scrollArea;
+    QFrame *commentsArea;
+
+    //Area to add new comment
+    QLineEdit *commentEdit;
+    QPushButton *publishButton;
 };
 
 #endif // COMMENTSDIALOG_H

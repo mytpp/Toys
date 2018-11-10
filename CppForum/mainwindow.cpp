@@ -21,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
         postArea = new PostsArea(this);  qDebug()<<"3";
         scrollArea = new QScrollArea(this);
         scrollArea->setWidget(postArea);
+        scrollArea->setWidgetResizable(true);
 
         mainArea->addWidget(boardArea);  qDebug()<<"4";
         mainArea->addWidget(scrollArea);   qDebug()<<"5";

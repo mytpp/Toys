@@ -13,7 +13,7 @@ public:
 
     const QString&         ModeratorId() const { return moderatorId; }
     const QString&         Name()        const { return name; }
-    const std::list<Post>& GetPosts()    const { qDebug()<<"getpost";return posts; }
+    const std::list<Post>& GetPosts()    const { return posts; }
 
     bool AddPost(const QString& guid, const QString& title, const QString& content);
     bool DeletePost(size_t index);
