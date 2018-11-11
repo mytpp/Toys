@@ -13,6 +13,7 @@ CommentsDialog::CommentsDialog(const Post& post, QWidget *parent)
       post(post)
 {
 qDebug()<<"in com dlg";
+    this->setMinimumSize(250, 300);
     commentsArea = new QFrame();
     scrollArea = new QScrollArea(this);
     scrollArea->setWidget(commentsArea);
@@ -98,5 +99,6 @@ void CommentsDialog::CreateCommentEdit() {
 
     connect(publishButton, &QPushButton::clicked, [=]{
         OnAddComment(commentEdit->text());
+        emit AddComment();
     });
 }

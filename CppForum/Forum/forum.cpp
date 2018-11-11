@@ -3,6 +3,7 @@
 #include <iterator>
 #include <QUuid>
 #include <QDate>
+#include <QDebug>
 
 namespace std {
     //make QString hashable
@@ -24,7 +25,14 @@ Forum::Forum()
 Forum::~Forum() {}
 
 void Forum::Show() {
+    SetCurBoard(0);   //navigate to the first board
+    qDebug()<<"11";
     emit ReadyToDraw();
+    qDebug()<<"22";
+}
+
+void Forum::Hide() {
+    emit HideForum();
 }
 
 std::vector<QString> Forum::GetBoardNames() const {

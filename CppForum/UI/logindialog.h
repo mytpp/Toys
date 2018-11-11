@@ -13,6 +13,7 @@ class LoginDialog : public QDialog
 public:
     LoginDialog(QWidget *parent = 0);
 
+//    LoginDialog& Get();
 
 private:
     QLabel *idLabel;

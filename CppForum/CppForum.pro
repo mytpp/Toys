@@ -82,4 +82,5 @@ HEADERS += \
     infrastructure.h \
     mainwindow.h \
     UI/commentsdialog.h \
-    UI/postedit.h
+    UI/postedit.h \
+    forumui.h

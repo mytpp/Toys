@@ -19,7 +19,9 @@ void User::LogIn(){
 }
 
 void User::Logout(){
-    //emit signal
+    qDebug()<<"logout!";
+    delete _user;
+    Forum::Get().Hide();
 }
 
 void User::SwitchToBoard(size_t index){

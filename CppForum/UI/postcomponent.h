@@ -26,6 +26,7 @@ private:
     int index;  //the offset of this component at PostArea
     QLabel *title;
     QTextBrowser *content;
+    int commentsCount;
     QPushButton *comments;
     QPushButton *deletePost;
 

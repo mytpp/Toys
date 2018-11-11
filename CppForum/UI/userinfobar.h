@@ -11,6 +11,8 @@ class UserInfoBar : public QWidget
 public:
     explicit UserInfoBar(QWidget *parent = nullptr);
 
+    void Refresh();
+
 private:
     QLabel *userId;
     QLabel *userName;

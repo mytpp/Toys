@@ -5,10 +5,10 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QScrollArea>
-#include "UI/logindialog.h"
 #include "UI/userinfobar.h"
 #include "UI/postsarea.h"
 #include "UI/boardsarea.h"
+
 
 class MainWindow : public QMainWindow
 {
@@ -24,10 +24,11 @@ public:
     PostsArea* & AccessPostArea() { return postArea; }
 
 public slots:
+    void Initiate();
     void RefreshPostArea();
 
 private:
-    LoginDialog *loginUI;
+    //bool elementsExist;
 
     //Since the QMainWindow class already has a layout,
     //we need to use a container(QWidget) to hold our own

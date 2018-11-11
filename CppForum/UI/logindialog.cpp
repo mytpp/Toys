@@ -16,6 +16,7 @@ LoginDialog::LoginDialog(QWidget *parent)
     passwordLabel = new QLabel(this);
     passwordLabel->setText(tr("PassWord"));
     passwordEdit = new QLineEdit(this);
+    passwordEdit->setEchoMode(QLineEdit::Password);
 
     loginButton = new QPushButton(this);
     loginButton->setText("LogIn");
@@ -37,10 +38,15 @@ LoginDialog::LoginDialog(QWidget *parent)
         } else if (result == infrastructure::WRONG_PASSWORD) {
             QMessageBox::warning(nullptr, tr("Error!"), tr("WRONG PASSWORD"), QMessageBox::Ok);
         } else {
-            this->close();
+            idEdit->clear();
+            passwordEdit->clear();
             User::Get()->LogIn();
+            this->close();
         }
     });
 }
 
-
+//LoginDialog& LoginDialog::Get() {
+//    static LoginDialog _instance;
+//    retrun _instance;
+//}

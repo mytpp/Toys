@@ -34,7 +34,7 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
 
     //comment button
     comments = new QPushButton(this);
-    auto commentsCount = post.Comments().size();
+    commentsCount = post.Comments().size();
     comments->setText(QString::number(commentsCount) + tr(" Comments"));
     hLayout->addStretch();   //placeholder to make button align right
     hLayout->addWidget(comments);
@@ -45,6 +45,9 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
             [=]{
         commentsDialog = new CommentsDialog(post, this);
         commentsDialog->show();
+        connect(commentsDialog, &CommentsDialog::AddComment, [=]{
+            comments->setText(QString::number(++commentsCount) + tr(" Comments"));
+        });
     });
 
     //"Delete" button conditional appears

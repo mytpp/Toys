@@ -29,7 +29,7 @@ public:
     //draw the framework of forum, including boards list
     void Show();
     //close the "forum UI"
-    void Close();
+    void Hide();
 
     std::vector<QString> GetBoardNames() const;
 
@@ -46,6 +46,7 @@ public:
 
 signals:
     void ReadyToDraw();
+    void HideForum();
 
 private:
     bool GetBoards();

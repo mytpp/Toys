@@ -44,3 +44,9 @@ UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
 
     this->setMaximumHeight(50);
 }
+
+void UserInfoBar::Refresh() {
+    auto profile = User::Get()->GetProfile();
+
+    userName->setText("Hello! " + profile.name);
+}

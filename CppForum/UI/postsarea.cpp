@@ -46,10 +46,8 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
 }
 
 void PostsArea::OnDeletePost(int index) {
-    if(Forum::Get().GetCurBoard().DeletePost(index)) {
-        delete postComponents[index];
-        postComponents.removeAt(index);
-    }
+    delete postComponents[index];
+    postComponents.removeAt(index);
 }
 
 void PostsArea::OnAddPost(const QString &title, const QString &content) {
