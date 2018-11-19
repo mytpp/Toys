@@ -1,0 +1,8 @@
+#agent
+
+name: h1                  #主机名，如果没有则使用操作系统主机名
+port: 60000               #程序TCP监听地址
+root: d:/pns/root/        #所有物理位置的根目录
+secret: passW0RD          #认证密码，具体参见通信协议
+tracker: 10.1.2.3:60000   #tracker的地址，没有则表示自己是tracker
+

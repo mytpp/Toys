@@ -7,10 +7,31 @@ __author__ = 'mytpp'
 
 
 
-import sys, argparse
+import sys
+import argparse
+import yaml
+import asyncio
+
+# handle Ctrl+C
+import signal
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+# for Windows, use iocp
+if sys.platform == 'win32':
+    asyncio.set_event_loop(asyncio.ProactorEventLoop())
+
+def start_tracker():
+    pass
+
+def start_agent():
+    pass
+
+
 
 def cp(src, dst):
     print('cp')
+    print(src)
+    print(dst)
     pass
 
 def ln(src, dst):
@@ -43,9 +64,7 @@ def parse_command(cmd, *args):
     elif cmd == 'rm':
         rm(*args)
 
-
-
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='Personal Network Storage')
     parser.add_argument('-m', '--mode', dest='mode',
                         help='mode can be shell, agent or tracker')
@@ -62,7 +81,14 @@ if __name__ == '__main__':
         else:
             parse_command(*(args.cmd))
     elif args.mode == 'agent':
+        start_agent()
         print('agent')
     elif args.mode == 'tracker':
+        start_tracker()
         print('tracker')
+    else:
+        parser.print_help()
 
+
+if __name__ == '__main__':
+    main()
