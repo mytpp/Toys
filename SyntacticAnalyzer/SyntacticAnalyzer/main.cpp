@@ -7,7 +7,7 @@ int main() {
 
 	LL1::GenerateLL1Table();
 	LL1::PrintLL1Table();
-
+	LL1::Parse(L"n+n*n");
 
 	system("pause");
 	return 0;
