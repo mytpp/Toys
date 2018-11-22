@@ -1,16 +1,10 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <utility>
-#include <array>
 
+#include "Token.h"
 
 namespace LL1 {
 	
-
-
-
 	void GenerateLL1Table();
 
 	void PrintLL1Table();
