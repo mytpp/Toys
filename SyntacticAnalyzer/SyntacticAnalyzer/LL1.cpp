@@ -1,8 +1,12 @@
 #include "LL1.h"
 #include <iostream>
 #include <iomanip>
+#include <utility>
+#include <array>
+#include <vector>
 #include <stack>
 #include <type_traits> 
+
 
 
 namespace LL1 {
@@ -293,7 +297,5 @@ namespace LL1 {
 
 		} while (tokenStack.top() != dollar);
 	}
-
-	
 
 }
