@@ -6,75 +6,13 @@
 #include <vector>
 #include <stack>
 #include <type_traits> 
+#include <vector>
+#include <array>
+#include <stack>
 
 
 
 namespace LL1 {
-	/************************************TYPE***************************************/
-	enum NonTerminator : uint8_t
-	{
-		E = 0,
-		e = 1,
-		T = 2,
-		t = 3,
-		F = 4,
-		invalidNonTerminator = 255
-	};
-
-	enum Terminator : uint8_t
-	{
-		num = 0,
-		add = 1,    // +
-		sub = 2,    // -
-		mul = 3,    // *
-		divi = 4,   // /
-		lpar = 5,   // (
-		rpar = 6,   // )
-		dollar = 7, // $ (not terminator actually)
-		epsilon = 8,// ¦Å (not terminator actually)
-		invalidTerminator = 255
-	};
-
-	//Empty string means the production is null
-	//As '¦Å' is not included in ASCII, we use wstring to represent the symbol string
-	using Production = std::pair<NonTerminator, std::wstring>;
-
-	//A syntactic token maybe NonTerminator or Terminator
-	struct Token
-	{
-		Token(NonTerminator nt)
-			:isTernaminator(false)
-			,nt(nt)
-		{}
-
-		Token(Terminator t)
-			:isTernaminator(true)
-			, t(t)
-		{}
-
-		bool isTernaminator;
-		union {
-			NonTerminator nt;
-			Terminator    t;
-		} ;
-	};
-
-	bool operator==(Token token, Terminator t) {
-		return token.isTernaminator && token.t == t;
-	}
-
-	bool operator==(Token token, NonTerminator nt) {
-		return !token.isTernaminator && token.nt == nt;
-	}
-
-	bool  operator!=(Token token, Terminator t) {
-		return !(token == t);
-	}
-
-	bool  operator!=(Token token, NonTerminator nt) {
-		return !(token == nt);
-	}
-
 	/**************************************VARIABLE***************************************/
 
 	//It should be more efficient to use string rather than vector,
@@ -177,23 +115,23 @@ namespace LL1 {
 	void PrintTerminator(Terminator t, std::streamsize w = 12) {
 		switch (t)
 		{
-		case LL1::num:   std::wcout << std::setw(w) << L"num";
+		case num:   std::wcout << std::setw(w) << L"num";
 			break;	     
-		case LL1::add:   std::wcout << std::setw(w) << L'+';
+		case add:   std::wcout << std::setw(w) << L'+';
 			break;	     
-		case LL1::sub:   std::wcout << std::setw(w) << L'-';
+		case sub:   std::wcout << std::setw(w) << L'-';
 			break;	     
-		case LL1::mul:   std::wcout << std::setw(w) << L'*';
+		case mul:   std::wcout << std::setw(w) << L'*';
 			break;	     
-		case LL1::divi:  std::wcout << std::setw(w) << L'/';
+		case divi:  std::wcout << std::setw(w) << L'/';
 			break;	     
-		case LL1::lpar:  std::wcout << std::setw(w) << L'(';
+		case lpar:  std::wcout << std::setw(w) << L'(';
 			break;
-		case LL1::rpar:  std::wcout << std::setw(w) << L')';
+		case rpar:  std::wcout << std::setw(w) << L')';
 			break;
-		case LL1::dollar:std::wcout << std::setw(w) << L'$';
+		case dollar:std::wcout << std::setw(w) << L'$';
 			break;
-		case LL1::epsilon:std::wcout << std::setw(w) << L'¦Å';
+		case epsilon:std::wcout << std::setw(w) << L'¦Å';
 			break;
 		default:
 			break;
@@ -203,15 +141,15 @@ namespace LL1 {
 	void PrintNonTerminator(NonTerminator nt, std::streamsize w = 12) {
 		switch (nt)
 		{
-		case LL1::E: std::wcout << std::setw(w) << L'E';
+		case E: std::wcout << std::setw(w) << L'E';
 			break;
-		case LL1::e: std::wcout << std::setw(w) << L'e';
+		case e: std::wcout << std::setw(w) << L'e';
 			break;
-		case LL1::T: std::wcout << std::setw(w) << L'T';
+		case T: std::wcout << std::setw(w) << L'T';
 			break;
-		case LL1::t: std::wcout << std::setw(w) << L't';
+		case t: std::wcout << std::setw(w) << L't';
 			break;
-		case LL1::F: std::wcout << std::setw(w) << L'F';
+		case F: std::wcout << std::setw(w) << L'F';
 			break;
 		default:
 			break;
@@ -285,6 +223,8 @@ namespace LL1 {
 							auto nonTerminator = MapWchar2NonTerminator(*ri);
 							if (nonTerminator != invalidNonTerminator)
 								tokenStack.push(nonTerminator);
+							else
+								;//handle error
 						}
 					}
 

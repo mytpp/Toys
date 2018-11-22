@@ -3,6 +3,7 @@
 #include <string>
 
 
+#include "Token.h"
 
 namespace LL1 {
 	
