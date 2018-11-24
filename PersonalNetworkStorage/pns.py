@@ -8,6 +8,7 @@ __author__ = 'mytpp'
 
 
 import sys
+import os
 import argparse
 import yaml
 import asyncio
@@ -20,11 +21,17 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 if sys.platform == 'win32':
     asyncio.set_event_loop(asyncio.ProactorEventLoop())
 
-def start_tracker():
-    pass
 
-def start_agent():
-    pass
+def start_daemon(conf):
+    # read config from *.yaml
+    workingDirectory = os.path.split(os.path.realpath(__file__))[0]
+    yamlPath = os.path.join(workingDirectory, conf)
+    f = open(yamlPath, 'r', encoding='utf-8')
+    content = f.read()
+    config = yaml.load(content)
+    print(config)
+
+
 
 
 
@@ -40,7 +47,7 @@ def ln(src, dst):
 def ls(dst):
     pass
 
-def mkdir(dst):
+def md(dst):
     pass
 
 def mv(src, dst):
@@ -57,8 +64,8 @@ def parse_command(cmd, *args):
         ln(*args)
     elif cmd == 'ls':
         ls(*args)
-    elif cmd == 'mkdir':
-        mkdir(*args)
+    elif cmd == 'md':
+        md(*args)
     elif cmd == 'mv':
         mv(*args)
     elif cmd == 'rm':
@@ -67,7 +74,7 @@ def parse_command(cmd, *args):
 def main():
     parser = argparse.ArgumentParser(description='Personal Network Storage')
     parser.add_argument('-m', '--mode', dest='mode',
-                        help='mode can be shell, agent or tracker')
+                        help='mode can be shell or daemon')
     parser.add_argument('-c', '--config', dest='config',
                         help='the config file (*.yml)')
     parser.add_argument('cmd', nargs='*',
@@ -80,12 +87,9 @@ def main():
             print('Please enter a command')
         else:
             parse_command(*(args.cmd))
-    elif args.mode == 'agent':
-        start_agent()
-        print('agent')
-    elif args.mode == 'tracker':
-        start_tracker()
-        print('tracker')
+    elif args.mode == 'daemon':
+        start_daemon(args.config)
+        print('daemon')
     else:
         parser.print_help()
 
