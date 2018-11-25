@@ -16,7 +16,7 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     :QWidget(parent)
     ,index(index)
 {
-    this->setFixedSize(500, 150);
+    //this->setFixedSize(500, 150);
 
     vLayout = new QVBoxLayout(this);
     hLayout = new QHBoxLayout();

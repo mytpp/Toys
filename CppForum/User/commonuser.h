@@ -6,7 +6,7 @@
 class CommonUser: public User
 {   
 public:
-    CommonUser();
+    CommonUser(size_t postCount = 0);
 
     virtual infrastructure::Profile GetProfile() override;
 

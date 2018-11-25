@@ -46,7 +46,3 @@ LoginDialog::LoginDialog(QWidget *parent)
     });
 }
 
-//LoginDialog& LoginDialog::Get() {
-//    static LoginDialog _instance;
-//    retrun _instance;
-//}

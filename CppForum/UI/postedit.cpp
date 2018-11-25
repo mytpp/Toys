@@ -20,7 +20,7 @@ PostEdit::PostEdit(QWidget *parent) : QWidget(parent)
     newPostLayout->addWidget(titleEdit, 0, 1);
     newPostLayout->addWidget(contentLabel, 1, 0);
     newPostLayout->addWidget(contentEdit, 1, 1);
-    newPostLayout->addWidget(postButton, 2, 2);
+    newPostLayout->addWidget(postButton, 2, 1);
 
 
     connect(postButton, &QPushButton::clicked, [=]{

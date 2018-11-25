@@ -1,6 +1,7 @@
 #include "commonuser.h"
 
-CommonUser::CommonUser()
+CommonUser::CommonUser(size_t postCount)
+    :postCount(postCount)
 {
 
 }

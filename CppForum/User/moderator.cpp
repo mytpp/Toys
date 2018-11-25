@@ -1,6 +1,7 @@
 #include "moderator.h"
 
-Moderator::Moderator()
+Moderator::Moderator(size_t postCount)
+    :CommonUser(postCount)
 {
 
 }

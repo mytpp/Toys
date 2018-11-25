@@ -6,7 +6,7 @@
 class Moderator : public CommonUser
 {
 public:
-    Moderator();
+    Moderator(size_t postCount = 0);
 
     virtual void SwitchToBoard(size_t index) override;
 
