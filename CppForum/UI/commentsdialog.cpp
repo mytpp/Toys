@@ -17,6 +17,7 @@ qDebug()<<"in com dlg";
     commentsArea = new QFrame();
     scrollArea = new QScrollArea(this);
     scrollArea->setWidget(commentsArea);
+
     //Enable 'Resizable' so that we can add widgets afterwards,
     //and the scrollArea grows at the same time.
     //(Given that the initial size of scrollArea is 0)

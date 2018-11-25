@@ -21,7 +21,6 @@ public slots:
 
 private:
     QVBoxLayout *postsLayout;
-    QPushButton *assignModeratorButton;
     QList<PostComponent*> postComponents;
     PostEdit *postEdit;
 };

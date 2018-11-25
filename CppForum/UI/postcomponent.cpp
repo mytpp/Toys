@@ -16,14 +16,13 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     :QWidget(parent)
     ,index(index)
 {
-    //this->setFixedSize(500, 150);
-
     vLayout = new QVBoxLayout(this);
     hLayout = new QHBoxLayout();
 
     //title
     title = new QLabel(this);
-    title->setText(post.Title());
+    title->setText(post.Title() + tr("(Posted by ") +
+                   post.Poster() + tr(")") );
     vLayout->addWidget(title);
 
     //content
@@ -55,10 +54,12 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     auto&& status = User::Get()->GetProfile().status;
     auto& curModerator = Forum::Get().GetCurBoard().ModeratorId();
 
-    if( status == infrastructure::MODERATOR
-            && User::Get()->Id() == curModerator
-        || status == infrastructure::COMMON_USER
-            && User::Get()->Id() == post.Poster()) {
+    if( post.Comments().size() == 0
+        && (status == infrastructure::MODERATOR
+                && User::Get()->Id() == curModerator
+            || status == infrastructure::COMMON_USER
+                && User::Get()->Id() == post.Poster())
+    ) {
         deletePost = new QPushButton(this);
         deletePost->setText(tr("Delete"));
         hLayout->addWidget(deletePost);
@@ -77,7 +78,7 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
                 &PostComponent::DeletePostAtIndex,
                 qobject_cast<PostsArea*>(this->parent()),
                 &PostsArea::OnDeletePost);
-    }
+    }//end if
 }
 
 

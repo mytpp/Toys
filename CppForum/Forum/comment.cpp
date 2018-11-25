@@ -3,7 +3,7 @@
 Comment::Comment(const QString& author,
                  const QString& content,
                  const QDate birthday)
-    :author(author)
+    :authorId(author)
     ,content(content)
     ,birthday(birthday)
 {

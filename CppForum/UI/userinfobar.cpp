@@ -17,6 +17,7 @@ UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
     userName = new QLabel(this);
     userName->setText("Hello! " + profile.name);
     userInfoLayout->addWidget(userName);
+    userInfoLayout->addSpacing(25);
 
     //add status info
     userStatus = new QLabel(this);
@@ -29,18 +30,33 @@ UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
     }
     userStatus->setText(status);
     userInfoLayout->addWidget(userStatus);
+    userInfoLayout->addSpacing(25);
 
     //conditionally add post count
     if(profile.status != infrastructure::ADMINISTRATOR) {
         postCount = new QLabel(this);
         postCount->setText("Posts:" + QString::number(profile.postCount) );
         userInfoLayout->addWidget(postCount);
+        userInfoLayout->addSpacing(25);
+    }
+
+    //separate user info from buttons
+    userInfoLayout->addStretch();
+
+    //Administrator is able to assign moderator for current board
+    if(User::Get()->GetProfile().status == infrastructure::ADMINISTRATOR){
+        assignModeratorButton = new QPushButton(this);
+        assignModeratorButton->setText(tr("Assign Moderator"));
+        userInfoLayout->addWidget(assignModeratorButton, 0, Qt::AlignRight);
+
+        connect(assignModeratorButton, &QPushButton::clicked,[]{
+            //code*****************************
+        });
     }
 
     //add logout button
     logoutButton = new QPushButton(this);
     logoutButton->setText(tr("Log Out"));
-    userInfoLayout->addSpacing(100);
     userInfoLayout->addWidget(logoutButton, 0, Qt::AlignRight);
 
     connect(logoutButton, &QPushButton::clicked, []{

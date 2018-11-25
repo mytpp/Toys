@@ -14,14 +14,6 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
     postsLayout = new QVBoxLayout(this);
     postsLayout->setMargin(20);
 
-    if(User::Get()->GetProfile().status == infrastructure::ADMINISTRATOR){
-        assignModeratorButton = new QPushButton(this);
-        postsLayout->addWidget(assignModeratorButton);
-
-        connect(assignModeratorButton, &QPushButton::clicked,[]{
-            //code*****************************
-        });
-    }
 
     //retrive posts from the Forum
     auto& posts = Forum::Get().GetCurBoard().GetPosts();

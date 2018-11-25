@@ -16,11 +16,12 @@ public:
 
     void ShowComments();
 
-    const QString& Id()     const { return id; }
-    const QString& Poster() const { return poster; }
-    const QString& Title()  const { return title; }
-    const QString& Content()const { return content; }
-    const QDate&   Date()   const { return birthday; }
+    const QString& Id()       const { return id; }
+    const QString& Poster()   const { return poster; }
+    const QString& AuthorId() const { return authorId; }
+    const QString& Title()    const { return title; }
+    const QString& Content()  const { return content; }
+    const QDate&   Date()     const { return birthday; }
 
     const std::list<Comment>& Comments() const { return comments; }
     bool AddComment(const QString& content) const;
@@ -28,6 +29,7 @@ public:
 private:
     QString id;
     QString poster;
+    QString authorId;
     QString title;
     QString content;
     QDate birthday;

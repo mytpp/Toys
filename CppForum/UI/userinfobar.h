@@ -19,6 +19,7 @@ private:
     QLabel *userStatus;
     QLabel *postCount;
 
+    QPushButton *assignModeratorButton;
     QPushButton *logoutButton;
 };
 

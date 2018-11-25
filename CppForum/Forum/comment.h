@@ -11,12 +11,12 @@ public:
             const QString& content,
             const QDate birthday);
 
-    const QString& AuthorId()    const { return author; }
+    const QString& AuthorId()    const { return authorId; }
     const QString& Content()     const { return content; }
     const QDate&   PublishDate() const { return birthday; }
 
 private:
-    QString author;
+    QString authorId;
     QString content;
     QDate birthday;
 };
