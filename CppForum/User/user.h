@@ -16,12 +16,9 @@ public:
 
     virtual infrastructure::Profile GetProfile() =0;
 
-    virtual void SwitchToBoard(size_t index);
-
-    //don't let User (by virtual function) to decide whether to show
-    //"delete button" or "comment button", in order to decople from
-    //Forum class
-
+    //inc postCount, if there exists one
+    virtual void AddPost() {}
+    virtual void DeletePost() {}
 
     static User* Get() { return _user; }
     static infrastructure::Error TryLogin(QString id, QString password);

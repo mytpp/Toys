@@ -23,6 +23,7 @@ bool Board::AddPost(const QString& guid, const QString &title, const QString &co
         content,
         QDate::currentDate()
     );
+    User::Get()->AddPost();
     return true;
 }
 
@@ -32,5 +33,6 @@ bool Board::DeletePost(size_t index) {
     auto it = posts.begin();
     std::advance(it, index);
     posts.erase(it);
+    User::Get()->DeletePost();
     return true;
 }

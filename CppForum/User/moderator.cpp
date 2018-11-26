@@ -6,6 +6,4 @@ Moderator::Moderator(size_t postCount)
 
 }
 
-void Moderator::SwitchToBoard(size_t index){
 
-}

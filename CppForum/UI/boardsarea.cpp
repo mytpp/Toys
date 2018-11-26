@@ -23,13 +23,9 @@ BoardsArea::BoardsArea(QWidget *parent) : QWidget(parent)
         boardsLayout->addWidget(button, Qt::AlignTop);
 
 
-        //access postArea
-        auto& postArea = qobject_cast<MainWindow*>
-                (this->parent())->AccessPostArea();
-
         //when button is clicked, change curBoard
         connect(button, &QPushButton::clicked,
-                [buttonList = buttonList, button, &postArea, this] {
+                [buttonList = buttonList, button, this] {
             auto index = buttonList.indexOf(button);
             if(index < 0) {
                 qDebug()<<"Board index ERROR!!!!!!";

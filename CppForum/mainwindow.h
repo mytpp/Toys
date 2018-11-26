@@ -18,13 +18,13 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-    //This is for boardArea to refresh postArea (by signal).
-    //Returning reference is necessary to make the change
-    //visible to MainWindow
-    PostsArea* & AccessPostArea() { return postArea; }
+    void RefreshUserInfoBar();
+
 
 public slots:
     void Initiate();
+
+    //This is for boardArea to refresh postArea (by signal).
     void RefreshPostArea();
 
 private:

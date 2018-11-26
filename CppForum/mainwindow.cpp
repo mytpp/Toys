@@ -25,8 +25,8 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::Initiate() {
-    container = new QWidget(this);qDebug()<<"0";
-    this->setCentralWidget(container);;qDebug()<<"00";
+    container = new QWidget(this);
+    this->setCentralWidget(container);
 
     infoBar = new UserInfoBar(this);qDebug()<<"0";
 
@@ -53,6 +53,12 @@ void MainWindow::Initiate() {
     this->setAttribute(Qt::WA_DeleteOnClose);
     this->resize(800, 600);
     this->show();
+
+    this->dumpObjectTree();
+}
+
+void MainWindow::RefreshUserInfoBar() {
+    infoBar->Refresh();
 }
 
 void MainWindow::RefreshPostArea() {

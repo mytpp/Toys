@@ -10,7 +10,8 @@ public:
 
     virtual infrastructure::Profile GetProfile() override;
 
-    virtual void SwitchToBoard(size_t index) override;
+    virtual void AddPost() override;
+    virtual void DeletePost() override;
 
 private:
     size_t postCount;

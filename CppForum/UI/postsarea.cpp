@@ -7,6 +7,7 @@
 #include <QUuid>
 #include "Forum/post.h"
 #include "User/user.h"
+#include "forumui.h"
 
 
 PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
@@ -40,6 +41,7 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
 void PostsArea::OnDeletePost(int index) {
     delete postComponents[index];
     postComponents.removeAt(index);
+    ui::mainWindow->RefreshUserInfoBar();
 }
 
 void PostsArea::OnAddPost(const QString &title, const QString &content) {
@@ -78,5 +80,7 @@ void PostsArea::OnAddPost(const QString &title, const QString &content) {
         postEdit = new PostEdit(this);
         postsLayout->addWidget(postEdit);
     }//end if
+
+    ui::mainWindow->RefreshUserInfoBar();
 }
 

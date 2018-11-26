@@ -24,10 +24,6 @@ void User::Logout(){
     Forum::Get().Hide();
 }
 
-void User::SwitchToBoard(size_t index){
-    //don't show "delete post"
-}
-
 
 infrastructure::Error User::TryLogin(QString id, QString password){
     auto response = Forum::Verify(id, password);
@@ -38,10 +34,10 @@ infrastructure::Error User::TryLogin(QString id, QString password){
             _user = new Administrator();
             break;
         case infrastructure::COMMON_USER:
-            _user = new CommonUser();
+            _user = new CommonUser(response.postCount);
             break;
         case infrastructure::MODERATOR:
-            _user = new Moderator();
+            _user = new Moderator(response.postCount);
             break;
         default:
             break;

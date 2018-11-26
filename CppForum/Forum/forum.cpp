@@ -151,10 +151,10 @@ bool Forum::GetBoards() {
 void Forum::SetExistUsers(){
     users.insert({"123", {infrastructure::COMMON_USER, 0, "pp", "456" } });
     users.insert({"000", {infrastructure::ADMINISTRATOR, 0, "a_admin", "000"} });
-    users.insert({"111", {infrastructure::MODERATOR, 0, "a_user", "111"} });
-    users.insert({"222", {infrastructure::COMMON_USER, 0, "b_user", "222"} });
-    users.insert({"333", {infrastructure::COMMON_USER, 0, "c_user", "333"} });
-    users.insert({"444", {infrastructure::COMMON_USER, 0, "c_user", "444"} });
+    users.insert({"111", {infrastructure::MODERATOR, 1, "a_user", "111"} });
+    users.insert({"222", {infrastructure::COMMON_USER, 1, "b_user", "222"} });
+    users.insert({"333", {infrastructure::COMMON_USER, 1, "c_user", "333"} });
+    users.insert({"444", {infrastructure::COMMON_USER, 1, "c_user", "444"} });
 
 }
 

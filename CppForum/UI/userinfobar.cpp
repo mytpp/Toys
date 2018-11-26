@@ -70,4 +70,6 @@ void UserInfoBar::Refresh() {
     auto profile = User::Get()->GetProfile();
 
     userName->setText("Hello! " + profile.name);
+    if(postCount)
+        postCount->setText("Posts:" + QString::number(profile.postCount) );
 }
