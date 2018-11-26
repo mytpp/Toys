@@ -36,6 +36,9 @@ public:
     void SetCurBoard(size_t index);
     Board& GetCurBoard() { return *curBoard; }
 
+    bool AssignModerator(const QString& id);
+    bool DismissModerator();
+
 
     /*-----------------------Static Method------------------------*/
     static Forum& Get();

@@ -14,12 +14,17 @@ public:
     void Refresh();
 
 private:
+    void PopAssignDialog();
+    void PopDismissDialog();
+
+private:
     QLabel *userId;
     QLabel *userName;
     QLabel *userStatus;
     QLabel *postCount;
 
-    QPushButton *assignModeratorButton;
+    QPushButton *assignButton;
+    QPushButton *dismissButton;
     QPushButton *logoutButton;
 };
 

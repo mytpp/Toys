@@ -31,12 +31,21 @@ LoginDialog::LoginDialog(QWidget *parent)
 
     connect(loginButton, &QPushButton::clicked,
             [idEdit = idEdit, passwordEdit = passwordEdit, this]{
+        if(idEdit->text().isEmpty() || passwordEdit->text().isEmpty()){
+            QMessageBox::warning(nullptr, tr("Error!"),
+                                 tr("Id and Password are required!"),
+                                 QMessageBox::Ok);
+            return;
+        }
+
         auto result = User::TryLogin(idEdit->text(), passwordEdit->text());
 
         if(result == infrastructure::ID_NOT_FOUNTD) {
-            QMessageBox::warning(nullptr, tr("Error!"), tr("ID NOT FOUNTD"), QMessageBox::Ok);
+            QMessageBox::warning(nullptr, tr("Error!"),
+                                 tr("ID NOT FOUNTD"), QMessageBox::Ok);
         } else if (result == infrastructure::WRONG_PASSWORD) {
-            QMessageBox::warning(nullptr, tr("Error!"), tr("WRONG PASSWORD"), QMessageBox::Ok);
+            QMessageBox::warning(nullptr, tr("Error!"),
+                                 tr("WRONG PASSWORD"), QMessageBox::Ok);
         } else {
             idEdit->clear();
             passwordEdit->clear();

@@ -53,8 +53,6 @@ void MainWindow::Initiate() {
     this->setAttribute(Qt::WA_DeleteOnClose);
     this->resize(800, 600);
     this->show();
-
-    this->dumpObjectTree();
 }
 
 void MainWindow::RefreshUserInfoBar() {

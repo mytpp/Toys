@@ -51,6 +51,29 @@ void Forum::SetCurBoard(size_t index) {
     std::advance(curBoard, index);
 }
 
+bool Forum::AssignModerator(const QString& id) {
+    auto it = users.find(id);
+    if(it == users.end() ||
+       it->second.status == infrastructure::ADMINISTRATOR)
+        return false;
+    it->second.status = infrastructure::MODERATOR;
+    curBoard->SetModerator(id);
+    return true;
+}
+
+bool Forum::DismissModerator() {
+    auto id = curBoard->ModeratorId();
+    if(id.isEmpty())
+        return false;
+
+    auto it = users.find(id);
+    if(it == users.end()) //necessary?
+        return false;
+    it->second.status = infrastructure::COMMON_USER;
+    curBoard->SetModerator(tr("")); //empty str means no moderator
+    return true;
+}
+
 Forum& Forum::Get() {
     static Forum _forum;
     return _forum;
