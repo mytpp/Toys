@@ -30,6 +30,9 @@ async def echo_request(reader, writer):
     print(f"Received header:\n{header_str!r}")
     header = {}
     for line in header_str:
+        # word_list = line.split(': ')
+        # if word_list < 2
+        #    continue
         key, value = line.split(': ')
         header[key] = value
 
@@ -38,8 +41,8 @@ async def echo_request(reader, writer):
     sha1 = hashlib.sha1()
     sha1.update(config['secret'].encode('utf-8'))
     sha1.update(header['C'].encode('utf-8'))
-    if sha1.hexdigest() != header['A']: # wrong password
-        writer.write(b'401 Unauthorized')
+    if not 'A' in header or sha1.hexdigest() != header['A']: # wrong password
+        writer.write(b'401 Unauthorized\n\n')
         await writer.drain()
         return
     
@@ -135,6 +138,8 @@ def parse_command(cmd, *args):
         asyncio.run(mv(*args))
     elif cmd == 'rm':
         asyncio.run(mv(*args))
+    else:
+        print('Unknown Command')
 
 def main():
     parser = argparse.ArgumentParser(description='Personal Network Storage')
