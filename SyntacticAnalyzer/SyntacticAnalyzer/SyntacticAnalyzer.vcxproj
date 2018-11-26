@@ -118,7 +118,6 @@
     <ClCompile Include="LL1.cpp" />
     <ClCompile Include="LR1.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Token.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LL1.h" />

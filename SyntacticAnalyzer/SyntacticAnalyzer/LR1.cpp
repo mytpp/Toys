@@ -6,7 +6,7 @@
 #include <stack>
 
 namespace SLR1 {
-
+	/***************************************TYPE**************************************/
 	enum NonTerminator : uint8_t
 	{
 		E = 0,
@@ -70,7 +70,7 @@ namespace SLR1 {
 	}
 
 
-	enum ActionCategory
+	enum ActionCategory : uint8_t
 	{
 		Error,
 		Shift,

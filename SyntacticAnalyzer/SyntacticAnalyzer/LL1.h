@@ -2,9 +2,6 @@
 
 #include <string>
 
-
-#include "Token.h"
-
 namespace LL1 {
 	
 	void GenerateLL1Table();
