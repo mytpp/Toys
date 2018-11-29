@@ -16,6 +16,7 @@ import asyncio
 import hashlib
 import sqlite3
 import datetime
+import time
 
 # handle Ctrl+C
 import signal
@@ -25,6 +26,19 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 config = None # to be read from *.yaml
 metaDB = None # meta database used only in tracker
 
+def parse_config(file_name):
+    # read config from *.yaml
+    wd = os.path.split(os.path.realpath(__file__))[0]
+    yaml_path = os.path.join(wd, file_name)
+    global config 
+    with open(yaml_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    config = yaml.load(content)
+    print('Load config successfully')
+    print(config)
+
+
+#-----------------------------Sever Side-------------------------------#
 def init_db():
     global config, metaDB
     
@@ -45,7 +59,7 @@ def init_db():
     # this is the first time we start the tracker
     cursor.execute('select count(*) from filesystem')
     if cursor.fetchone()[1] == 0:
-        now = str(datetime.datetime.now())
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # insert root
         cursor.execute('''
         insert into filesystem
@@ -53,8 +67,10 @@ def init_db():
         values ('/', 0, ?, ?)
         ''', (now, now))
         # insert node representing this host
-        ctime = os.path.getctime(config['root'])
-        mtime = os.path.getmtime(config['root'])
+        ctime_stamp = os.path.getctime(config['root'])
+        mtime_stamp = os.path.getmtime(config['root'])
+        ctime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ctime_stamp))
+        mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
         cursor.execute('''
         insert into filesystem
         (logical_path, phsical_path, is_file, ctime, mtime)
@@ -63,6 +79,7 @@ def init_db():
         metaDB.commit()
 
     cursor.close()
+
 
 async def echo_request(reader, writer):
     data = await reader.readuntil(b'\n\n')
@@ -91,17 +108,8 @@ async def echo_request(reader, writer):
     # ...
 
 
-async def start_daemon(conf):
-    # read config from *.yaml
-    wd = os.path.split(os.path.realpath(__file__))[0]
-    yaml_path = os.path.join(wd, conf)
-    global config 
-    with open(yaml_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    config = yaml.load(content)
-    print(type(config))
-    print(config)
-    
+async def start_daemon():
+    global config
     # if we're starting tracker, initiate meta database
     if not 'tracker' in config: 
         init_db()
@@ -120,6 +128,7 @@ async def start_daemon(conf):
 
 
 
+#---------------------------Client Side (shell)----------------------------#
 
 # construct a request header
 def make_header(cmd, length = 0):
@@ -136,14 +145,32 @@ def make_header(cmd, length = 0):
     return header
 
 
+# get error code
+async def get_error(reader):
+    error = await reader.readline()
+    err_msg = error.decode('utf-8').split(b' ')
+    print(err_msg[2])
+    if err_msg[1] != b'200':
+        return True
+
+
 async def cp(src, dst):
     print('cp')
     print(src)
     print(dst)
-    pass
+
 
 async def ln(src, dst):
-    pass
+    reader, writer = await asyncio.open_connection(
+            '127.0.0.1', config['port'])
+    header = make_header('ln ' + src + ' ' + dst)
+    print(f'Send: {header!r}')
+    writer.write(header.encode('utf-8'))
+    
+    if await get_error(reader):
+        return
+    print('Link successfully')
+
 
 async def ls(dst):
     reader, writer = await asyncio.open_connection(
@@ -152,11 +179,7 @@ async def ls(dst):
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
 
-    # get error code
-    error = await reader.readline()
-    err_msg = error.decode('utf-8').split(b' ')
-    print(err_msg[2])
-    if err_msg[1] != b'200':
+    if await get_error(reader):
         return
     
     # get json data
@@ -166,13 +189,30 @@ async def ls(dst):
 
 
 async def md(dst):
-    pass
+    reader, writer = await asyncio.open_connection(
+            '127.0.0.1', config['port'])
+    header = make_header('md ' + dst)
+    print(f'Send: {header!r}')
+    writer.write(header.encode('utf-8'))
+    
+    if await get_error(reader):
+        return
+    print('Make directory successfully')
+
 
 async def mv(src, dst):
     pass
 
 async def rm(dst):
-    pass 
+    reader, writer = await asyncio.open_connection(
+            '127.0.0.1', config['port'])
+    header = make_header('md ' + dst)
+    print(f'Send: {header!r}')
+    writer.write(header.encode('utf-8'))
+    
+    if await get_error(reader):
+        return
+    print('Remove successfully')
 
 
 def parse_command(cmd, *args):
@@ -202,6 +242,11 @@ def main():
 
     args = parser.parse_args()
 
+    if args.config:
+        parse_config(args.config)
+    else:
+        print('No config file detected!')
+
     if args.mode == 'shell':
         if not args.cmd:
             print('Please enter a command')
@@ -212,7 +257,7 @@ def main():
         # for Windows, use iocp
         # if sys.platform == 'win32':
             # asyncio.set_event_loop(asyncio.ProactorEventLoop())
-        asyncio.run(start_daemon(args.config)) 
+        asyncio.run(start_daemon()) 
     else:
         parser.print_help()
 
