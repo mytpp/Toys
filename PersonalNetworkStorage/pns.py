@@ -14,6 +14,8 @@ import yaml
 import json
 import asyncio
 import hashlib
+import sqlite3
+import datetime
 
 # handle Ctrl+C
 import signal
@@ -21,7 +23,46 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 
 config = None # to be read from *.yaml
+metaDB = None # meta database used only in tracker
 
+def init_db():
+    global config, metaDB
+    
+    metaDB = sqlite3.connect('pns.sqlite3')
+    cursor = metaDB.cursor()
+    cursor.execute('''
+    create table if not exists filesystem (
+        logical_path varcahr(255) primary key,
+        phsical_path varcahr(255), -- is null if logical_path is not linked
+        is_file      boolean,
+        ctime        text,
+        mtime        text,
+        size         int           -- valid if 'is_file' is 1
+    )
+    ''')
+    
+    # if the database is empty, 
+    # this is the first time we start the tracker
+    cursor.execute('select count(*) from filesystem')
+    if cursor.fetchone()[1] == 0:
+        now = str(datetime.datetime.now())
+        # insert root
+        cursor.execute('''
+        insert into filesystem
+        (logical_path, is_file, ctime, mtime)
+        values ('/', 0, ?, ?)
+        ''', (now, now))
+        # insert node representing this host
+        ctime = os.path.getctime(config['root'])
+        mtime = os.path.getmtime(config['root'])
+        cursor.execute('''
+        insert into filesystem
+        (logical_path, phsical_path, is_file, ctime, mtime)
+        values  (?, ?, 0, ?, ?)
+        ''', ('/'+config['name'], config['root'], ctime, mtime))
+        metaDB.commit()
+
+    cursor.close()
 
 async def echo_request(reader, writer):
     data = await reader.readuntil(b'\n\n')
@@ -61,12 +102,21 @@ async def start_daemon(conf):
     print(type(config))
     print(config)
     
+    # if we're starting tracker, initiate meta database
+    if not 'tracker' in config: 
+        init_db()
+    
     server = await asyncio.start_server(
         echo_request, '127.0.0.1', config['port'])
     addr = server.sockets[0].getsockname()
     print(f'Serving on {addr}')
     async with server:
         await server.serve_forever()
+
+    # close database
+    global metaDB
+    metaDB.commit()
+    metaDB.close()
 
 
 
