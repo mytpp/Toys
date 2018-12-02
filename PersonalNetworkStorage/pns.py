@@ -17,6 +17,7 @@ import hashlib
 import sqlite3
 import datetime
 import time
+import socket
 
 # handle Ctrl+C
 import signal
@@ -38,6 +39,7 @@ def parse_config(file_name):
     print(config)
 
 
+
 #-----------------------------Sever Side-------------------------------#
 def init_db():
     global config, metaDB
@@ -48,10 +50,11 @@ def init_db():
     create table if not exists filesystem (
         logical_path varcahr(255) primary key,
         phsical_path varcahr(255), -- is null if logical_path is not linked
-        is_file      boolean,
+        category     int,          -- 0: file, 1: path, 2: link
         ctime        text,
         mtime        text,
-        size         int           -- valid if 'is_file' is 1
+        size         int           -- available only for file
+        destination  varcahr(255)  -- available only for link
     )
     ''')
     
@@ -63,20 +66,21 @@ def init_db():
         # insert root
         cursor.execute('''
         insert into filesystem
-        (logical_path, is_file, ctime, mtime)
+        (logical_path, category, ctime, mtime)
         values ('/', 0, ?, ?)
         ''', (now, now))
         # insert node representing this host
-        ctime_stamp = os.path.getctime(config['root'])
-        mtime_stamp = os.path.getmtime(config['root'])
-        ctime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ctime_stamp))
-        mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
-        cursor.execute('''
-        insert into filesystem
-        (logical_path, phsical_path, is_file, ctime, mtime)
-        values  (?, ?, 0, ?, ?)
-        ''', ('/'+config['name'], config['root'], ctime, mtime))
-        metaDB.commit()
+        # ctime_stamp = os.path.getctime(config['root'])
+        # mtime_stamp = os.path.getmtime(config['root'])
+        # ctime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ctime_stamp))
+        # mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
+        # this_ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
+        # cursor.execute('''
+        # insert into filesystem
+        # (logical_path, phsical_path, category, ctime, mtime)
+        # values  (?, ?, 0, ?, ?)
+        # ''', ('/'+config['name'], config['root'], ctime, mtime))
+        # metaDB.commit()
 
     cursor.close()
 
@@ -150,19 +154,52 @@ async def get_error(reader):
     error = await reader.readline()
     err_msg = error.decode('utf-8').split(b' ')
     print(err_msg[2])
-    if err_msg[1] != b'200':
+    if err_msg[1] != b'200': # error occurs
+        print("Error! " + err_msg[2])
         return True
 
 
 async def cp(src, dst):
-    print('cp')
-    print(src)
-    print(dst)
+    # judge if the path is in this host
+    def path_in_this_host(path):
+        if not path.startwith('//'): # not a physical path
+            return False
+        global config
+        this_ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
+        location = path.split('/', 3)[2]
+        if this_ip == location or config['name'] == location:
+            return True
+        return False
+
+    src_is_here = path_in_this_host(src)
+    dst_is_here = path_in_this_host(dst)
+    if src_is_here and dst_is_here:
+        # use local filesystem
+        pass
+    elif not src_is_here and not dst_is_here:
+        pass
+    else:
+        reader, writer = await asyncio.open_connection(
+            config['tracker'], config['port'])
+        if src_is_here:
+            header = make_header('ls ' + dst)
+        else:
+            header = make_header('ls ' + src)
+        print(f'Send: {header!r}')
+        writer.write(header.encode('utf-8'))
+        
+        if await get_error(reader):
+            return
+        
+        # get json data
+        data = await reader.read()
+        response = json.loads(data)
+
 
 
 async def ln(src, dst):
     reader, writer = await asyncio.open_connection(
-            '127.0.0.1', config['port'])
+            config['tracker'], config['port'])
     header = make_header('ln ' + src + ' ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
@@ -174,7 +211,7 @@ async def ln(src, dst):
 
 async def ls(dst):
     reader, writer = await asyncio.open_connection(
-            '127.0.0.1', config['port'])
+            config['tracker'], config['port'])
     header = make_header('ls ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
@@ -190,7 +227,7 @@ async def ls(dst):
 
 async def md(dst):
     reader, writer = await asyncio.open_connection(
-            '127.0.0.1', config['port'])
+            config['tracker'], config['port'])
     header = make_header('md ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
@@ -205,7 +242,7 @@ async def mv(src, dst):
 
 async def rm(dst):
     reader, writer = await asyncio.open_connection(
-            '127.0.0.1', config['port'])
+            config['tracker'], config['port'])
     header = make_header('md ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
