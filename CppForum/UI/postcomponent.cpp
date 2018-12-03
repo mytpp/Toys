@@ -54,11 +54,11 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     auto&& status = User::Get()->GetProfile().status;
     auto& curModerator = Forum::Get().GetCurBoard().ModeratorId();
 
-    if( post.Comments().size() == 0
-        && (status == infrastructure::MODERATOR
-                && User::Get()->Id() == curModerator
-            || status == infrastructure::COMMON_USER
-                && User::Get()->Id() == post.Poster())
+    if(status == infrastructure::MODERATOR
+          && User::Get()->Id() == curModerator
+       || post.Comments().size() == 0
+          && status == infrastructure::COMMON_USER
+          && User::Get()->Id() == post.Poster()
     ) {
         deletePost = new QPushButton(this);
         deletePost->setText(tr("Delete"));
@@ -78,6 +78,10 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
                 &PostComponent::DeletePostAtIndex,
                 qobject_cast<PostsArea*>(this->parent()),
                 &PostsArea::OnDeletePost);
+
+//        connect(commentsDialog, &CommentsDialog::AddComment, [=]{
+//            delete deletePost;
+//        });
     }//end if
 }
 

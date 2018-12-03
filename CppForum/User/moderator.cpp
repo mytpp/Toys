@@ -6,4 +6,6 @@ Moderator::Moderator(size_t postCount)
 
 }
 
-
+infrastructure::Profile Moderator::GetProfile(){
+    return { Id(), Name(), infrastructure::MODERATOR, PostCount() };
+}

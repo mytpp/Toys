@@ -110,13 +110,14 @@ bool Forum::GetBoards() {
     boards = {
         {//Board 1
             "C++11/14",
+            "111",
             {//Posts lists
                 {//Post 1
                     QUuid::createUuid().toString(),
                     "333",
                     "lambda-calculus",
                     "Qt Creator's C++ compliler frontend doesn't support init capture",
-                    QDate::currentDate().addDays(-2),
+                    QDate::currentDate().addDays(-5),
                     {}
                 },
                 {//Post 2
@@ -124,9 +125,29 @@ bool Forum::GetBoards() {
                     "222",
                     "memory model",
                     "What's new about C++'s memory model in the C++14 standard?",
-                    QDate::currentDate().addDays(-1),
+                    QDate::currentDate().addDays(-4),
                     {}
-                }
+                },
+                {//Post 3
+                    QUuid::createUuid().toString(),
+                    "111",
+                    "std::packaged_task",
+                    "The class template std::packaged_task wraps any Callable target (function, lambda expression, bind expression, or another function object) so that it can be invoked asynchronously. Its return value or exception thrown is stored in a shared state which can be accessed through std::future objects. ",
+                    QDate::currentDate().addDays(-3),
+                    {//comments
+                        {//1st
+                            "123",
+                            "niubility!",
+                            QDate::currentDate().addDays(-3)
+                        },
+                        {//2nd
+                            "222",
+                            "why do I need packaged_task when I have std::async?",
+                            QDate::currentDate().addDays(-3)
+                        }
+                    }
+                },
+
             }
         },
         {//Board 2
@@ -177,7 +198,7 @@ void Forum::SetExistUsers(){
     users.insert({"111", {infrastructure::MODERATOR, 1, "a_user", "111"} });
     users.insert({"222", {infrastructure::COMMON_USER, 1, "b_user", "222"} });
     users.insert({"333", {infrastructure::COMMON_USER, 1, "c_user", "333"} });
-    users.insert({"444", {infrastructure::COMMON_USER, 1, "c_user", "444"} });
-
+    users.insert({"444", {infrastructure::COMMON_USER, 1, "d_user", "444"} });
+    users.insert({"555", {infrastructure::ADMINISTRATOR, 0, "b_admin", "555"} });
 }
 

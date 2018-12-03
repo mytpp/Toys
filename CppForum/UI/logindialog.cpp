@@ -50,7 +50,7 @@ LoginDialog::LoginDialog(QWidget *parent)
             idEdit->clear();
             passwordEdit->clear();
             User::Get()->LogIn();
-            this->close();
+            this->hide();
         }
     });
 }

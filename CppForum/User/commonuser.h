@@ -13,6 +13,8 @@ public:
     virtual void AddPost() override;
     virtual void DeletePost() override;
 
+    const size_t PostCount() const { return postCount; }
+
 private:
     size_t postCount;
 };
