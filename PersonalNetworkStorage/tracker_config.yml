@@ -2,5 +2,5 @@
 
 name: h2
 port: 60000
-root: d:/pns/root/
+root: d:/pns/
 secret: passW0RD

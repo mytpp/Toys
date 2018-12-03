@@ -6,7 +6,6 @@
 __author__ = 'mytpp'
 
 
-
 import sys
 import os
 import argparse
@@ -18,6 +17,10 @@ import sqlite3
 import datetime
 import time
 import socket
+
+
+import logging
+logging.basicConfig(level=logging.INFO)
 
 # handle Ctrl+C
 import signal
@@ -35,12 +38,41 @@ def parse_config(file_name):
     with open(yaml_path, 'r', encoding='utf-8') as f:
         content = f.read()
     config = yaml.load(content)
+    this_ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
+    config['root'] = os.path.normpath(config['root'])
+    config['ip'] = this_ip
     print('Load config successfully')
     print(config)
 
 
 
-#-----------------------------Sever Side-------------------------------#
+#---------------------------------Daemon Side----------------------------------#
+def local_to_physical(localpath):
+    relative_path = localpath.split(config['root'])[1]
+    return '//' + config['name'] + '/' + relative_path[1:]
+
+def load_path(path_list, cursor, localhost = True):
+    global config
+    for path in path_list:
+        logging.info(path)
+        ctime_stamp = os.path.getctime(path)
+        mtime_stamp = os.path.getmtime(path)
+        ctime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ctime_stamp))
+        mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
+        cursor.execute('''
+            insert into filesystem
+            (phsical_path, category, ctime, mtime, size, hostip)
+            values  (?, ?, ?, ?, ?, ?)
+            ''', 
+            (local_to_physical(path) , os.path.isfile(path), 
+            ctime, mtime, os.path.getsize(path), config['ip'])
+        )
+        metaDB.commit()
+        # recursive load path
+        if(os.path.isdir(path)):
+            load_path([path + '\\' + subpath for subpath in os.listdir(path)], cursor)
+        
+
 def init_db():
     global config, metaDB
     
@@ -48,40 +80,35 @@ def init_db():
     cursor = metaDB.cursor()
     cursor.execute('''
     create table if not exists filesystem (
-        logical_path varcahr(255) primary key,
+        logical_path varcahr(255),
         phsical_path varcahr(255), -- is null if logical_path is not linked
         category     int,          -- 0: file, 1: path, 2: link
         ctime        text,
         mtime        text,
-        size         int           -- available only for file
-        destination  varcahr(255)  -- available only for link
+        size         int,          -- zero for dir
+        hostip       varchar(20)   -- where is this path
     )
     ''')
     
     # if the database is empty, 
     # this is the first time we start the tracker
     cursor.execute('select count(*) from filesystem')
-    if cursor.fetchone()[1] == 0:
+    if cursor.fetchone()[0] == 0:
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # insert root
+        # insert logical root
         cursor.execute('''
-        insert into filesystem
-        (logical_path, category, ctime, mtime)
-        values ('/', 0, ?, ?)
-        ''', (now, now))
-        # insert node representing this host
-        # ctime_stamp = os.path.getctime(config['root'])
-        # mtime_stamp = os.path.getmtime(config['root'])
-        # ctime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ctime_stamp))
-        # mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
-        # this_ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
-        # cursor.execute('''
-        # insert into filesystem
-        # (logical_path, phsical_path, category, ctime, mtime)
-        # values  (?, ?, 0, ?, ?)
-        # ''', ('/'+config['name'], config['root'], ctime, mtime))
-        # metaDB.commit()
-
+            insert into filesystem
+            (logical_path, category, ctime, mtime, size, hostip)
+            values ('/', 0, ?, ?, 0, ?)
+            ''', (now, now, config['ip'])
+        )
+        metaDB.commit()
+        # insert physical paths in this host
+        load_path([config['root']], cursor)
+    
+    # debug
+    for row in cursor.execute('select * from filesystem'):
+        print(row)
     cursor.close()
 
 
@@ -132,7 +159,7 @@ async def start_daemon():
 
 
 
-#---------------------------Client Side (shell)----------------------------#
+#------------------------------Shell Side--------------------------------#
 
 # construct a request header
 def make_header(cmd, length = 0):
@@ -165,9 +192,8 @@ async def cp(src, dst):
         if not path.startwith('//'): # not a physical path
             return False
         global config
-        this_ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
         location = path.split('/', 3)[2]
-        if this_ip == location or config['name'] == location:
+        if config['ip'] == location or config['name'] == location:
             return True
         return False
 
@@ -177,7 +203,7 @@ async def cp(src, dst):
         # use local filesystem
         pass
     elif not src_is_here and not dst_is_here:
-        pass
+        print("Either src or dst should be in this host!")
     else:
         reader, writer = await asyncio.open_connection(
             config['tracker'], config['port'])
