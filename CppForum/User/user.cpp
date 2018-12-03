@@ -21,9 +21,7 @@ void User::LogIn(){
 void User::Logout(){
     qDebug()<<"logout!";
     delete _user;
-    qDebug()<<"logout!";
     Forum::Get().Hide();
-    qDebug()<<"logout!";
 }
 
 

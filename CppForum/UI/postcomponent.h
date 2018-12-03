@@ -16,7 +16,6 @@ class PostComponent : public QWidget
 {
     Q_OBJECT
 public:
-    explicit PostComponent(QWidget *parent = nullptr);
     explicit PostComponent(const Post& post, const int index, QWidget *parent = nullptr);
 
 signals:
@@ -24,16 +23,16 @@ signals:
 
 private:
     int index;  //the offset of this component at PostArea
-    QLabel *title;
-    QTextBrowser *content;
+    QLabel *title = nullptr;
+    QTextBrowser *content = nullptr;
     int commentsCount;
-    QPushButton *comments;
-    QPushButton *deletePost;
+    QPushButton *comments = nullptr;
+    QPushButton *deletePost = nullptr;
 
-    QVBoxLayout *vLayout;
-    QHBoxLayout *hLayout;
+    QVBoxLayout *vLayout = nullptr;
+    QHBoxLayout *hLayout = nullptr;
 
-    CommentsDialog *commentsDialog;
+    CommentsDialog *commentsDialog = nullptr;
 };
 
 #endif // POSTCOMPONENT_H

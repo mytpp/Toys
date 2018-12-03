@@ -7,11 +7,6 @@
 #include <QDebug>
 
 
-PostComponent::PostComponent(QWidget *parent) : QWidget(parent)
-{
-
-}
-
 PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
     :QWidget(parent)
     ,index(index)
@@ -46,6 +41,10 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
         commentsDialog->show();
         connect(commentsDialog, &CommentsDialog::AddComment, [=]{
             comments->setText(QString::number(++commentsCount) + tr(" Comments"));
+            if(deletePost) {
+                delete deletePost;
+                deletePost = nullptr;
+            }
         });
     });
 
@@ -78,10 +77,6 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
                 &PostComponent::DeletePostAtIndex,
                 qobject_cast<PostsArea*>(this->parent()),
                 &PostsArea::OnDeletePost);
-
-//        connect(commentsDialog, &CommentsDialog::AddComment, [=]{
-//            delete deletePost;
-//        });
     }//end if
 }
 

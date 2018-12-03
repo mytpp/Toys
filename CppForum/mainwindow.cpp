@@ -14,9 +14,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     //hide the forum (after a user logs out)
     connect(&Forum::Get(), &Forum::HideForum, [=]{
-        ui::loginDialog->show();
-        this->close();
-        ui::mainWindow = new MainWindow();
+        ui::loginDialog->show();qDebug()<<"a";
+//        this->close();
+        delete ui::mainWindow;qDebug()<<"b";
+        ui::mainWindow = new MainWindow();qDebug()<<"c";
     });
 }
 
