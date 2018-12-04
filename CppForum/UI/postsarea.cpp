@@ -41,6 +41,10 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
 void PostsArea::OnDeletePost(int index) {
     delete postComponents[index];
     postComponents.removeAt(index);
+    qDebug()<<index;
+    qDebug()<<postComponents.size();
+    for(int i=index; i<postComponents.size(); ++i)
+        postComponents[i]->DecIndex();
     ui::mainWindow->RefreshUserInfoBar();
 }
 

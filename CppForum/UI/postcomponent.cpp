@@ -64,11 +64,12 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
         hLayout->addWidget(deletePost);
 
         //link delete button to another signal to pass parameter
-        connect(deletePost, &QPushButton::clicked,
-                [index = index, this]{
-            if(Forum::Get().GetCurBoard().DeletePost(index)) {
+        connect(deletePost, &QPushButton::clicked, [this]{
+//            qDebug()<<"post del = "<<this->index;
+//            qDebug()<<"post del = "<<index;
+            if(Forum::Get().GetCurBoard().DeletePost(this->index)) {
                 //send this signal need 'this' pointer
-                emit DeletePostAtIndex(index);
+                emit DeletePostAtIndex(this->index);
             }
         });
 
