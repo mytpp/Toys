@@ -2,7 +2,7 @@
 #define USERINFOSTORAGE_H
 
 #include "forumstorage.h"
-#include <QSqlQuery>
+
 
 class UserInfoStorage : public ForumStorage
 {

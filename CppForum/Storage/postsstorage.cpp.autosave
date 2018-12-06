@@ -1,0 +1,7 @@
+#include "postsstorage.h"
+#include <QSqlQuery>
+
+PostsStorage::PostsStorage()
+{
+
+}

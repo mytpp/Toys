@@ -1,0 +1,11 @@
+#include "userinfostorage.h"
+#include <QSqlQuery>
+
+UserInfoStorage::UserInfoStorage()
+{
+
+}
+
+ForumStorage& UserInfoStorage::operator <<(QVector<QString>& record) {
+    
+}

@@ -5,7 +5,7 @@
 #include "mainwindow.h"
 
 namespace ui {
-
+//declaration
 extern LoginDialog *loginDialog;
 extern MainWindow *mainWindow;
 

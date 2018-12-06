@@ -2,9 +2,11 @@
 #include "UI/logindialog.h"
 #include <QApplication>
 #include "Forum/forum.h"
+#include <QSqlDatabase>
+#include <QDebug>
 
 namespace ui {
-
+//definition
 LoginDialog *loginDialog;
 MainWindow *mainWindow;
 
@@ -13,6 +15,13 @@ MainWindow *mainWindow;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    QSqlDatabase db = QSqlDatabase::addDatabase(QObject::tr("QSQLITE"));
+    db.setHostName(QObject::tr("myhost"));
+    db.setDatabaseName(QObject::tr("forum.db"));
+    db.setUserName(QObject::tr("mytpp"));
+    db.setPassword(QObject::tr("mytpp"));
+    qDebug()<<db.open();
 
     Forum::SetExistUsers();
 

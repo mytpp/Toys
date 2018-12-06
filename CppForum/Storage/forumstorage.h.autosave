@@ -9,7 +9,7 @@ class ForumStorage
 {
 public:
     ForumStorage();
-    virtual ~ForumStorage();
+    virtual ~ForumStorage() =0;
 
     static ForumStorage* CreateStorage(const QString& category);
 

@@ -1,0 +1,7 @@
+#include "commentsstorage.h"
+#include <QSqlQuery>
+
+CommentsStorage::CommentsStorage()
+{
+
+}
