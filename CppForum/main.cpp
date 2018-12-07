@@ -10,8 +10,9 @@ namespace ui {
 //definition
 LoginDialog *loginDialog;
 MainWindow *mainWindow;
-
 }
+
+static constexpr bool first_initiate = true;
 
 int main(int argc, char *argv[])
 {
@@ -23,7 +24,8 @@ int main(int argc, char *argv[])
     db.setUserName(QObject::tr("mytpp"));
     db.setPassword(QObject::tr("mytpp"));
     qDebug()<<db.open();
-    qDebug()<<ForumStorage::InitiateStorage();
+    if(first_initiate)
+        qDebug()<<ForumStorage::InitiateStorage();
 
     Forum::SetExistUsers();
 

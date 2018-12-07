@@ -23,10 +23,18 @@ public:
     virtual ForumStorage& operator >>(QVector<QString>& record) =0;
     virtual operator bool() const { return false; }
 
+private:
+    static bool InitiateUserInfo();
+    static bool InitiateBoards();
+    static bool InitiatePosts();
+    static bool InitiateComments();
+
 protected:
     QSqlQuery query;
 };
 
+
+//represent null value for storage
 class NullStorage: public ForumStorage
 {
 public:

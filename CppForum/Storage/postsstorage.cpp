@@ -12,13 +12,14 @@ ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
         return ForumStorage::GetNullValue();
     }
 
-    query.prepare("insert into posts values (?,?,?,?,?,?)");
+    query.prepare("insert into posts values (?,?,?,?,?,?,?)");
     query.addBindValue(record[0]);
     query.addBindValue(record[1]);
     query.addBindValue(record[2]);
     query.addBindValue(record[3]);
     query.addBindValue(record[4]);
     query.addBindValue(record[5]);
+    query.addBindValue(record[6]);
 
     bool success = query.exec();
     if(success) {

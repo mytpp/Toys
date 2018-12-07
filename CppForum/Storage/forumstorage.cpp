@@ -13,12 +13,18 @@ ForumStorage::ForumStorage()
 }
 
 bool ForumStorage::InitiateStorage() {
+
+    return false;
+}
+
+bool ForumStorage::InitiateUserInfo() {
     QSqlQuery query;
+
     //create userinfo table
     bool success = query.exec(
                "create table if not exists userinfo ("
                "id         varchar primary key,"
-               "status     char(20),"
+               "status     varchar,"
                "postsCount int,"
                "name       varchar,"
                "password   varchar)"
@@ -30,8 +36,57 @@ bool ForumStorage::InitiateStorage() {
         return false;
     }
 
+    //insert six users totally
+    query.prepare("insert into userinfo values (?,?,?,?,?)");
+
+    query.bindValue(0, "000");
+    query.bindValue(1, "ADMINISTRATOR");
+    query.bindValue(2, 0);
+    query.bindValue(3, "a_admin");
+    query.bindValue(4, "000");
+    query.exec();
+
+    query.bindValue(0, "111");
+    query.bindValue(1, "MODERATOR");
+    query.bindValue(2, 2);
+    query.bindValue(3, "a_user");
+    query.bindValue(4, "111");
+    query.exec();
+
+    query.bindValue(0, "222");
+    query.bindValue(1, "COMMON_USER");
+    query.bindValue(2, 1);
+    query.bindValue(3, "b_user");
+    query.bindValue(4, "222");
+    query.exec();
+
+    query.bindValue(0, "333");
+    query.bindValue(1, "COMMON_USER");
+    query.bindValue(2, 1);
+    query.bindValue(3, "c_user");
+    query.bindValue(4, "333");
+    query.exec();
+
+    query.bindValue(0, "444");
+    query.bindValue(1, "COMMON_USER");
+    query.bindValue(2, 1);
+    query.bindValue(3, "d_user");
+    query.bindValue(4, "444");
+    query.exec();
+
+    query.bindValue(0, "555");
+    query.bindValue(1, "ADMINISTRATOR");
+    query.bindValue(2, 0);
+    query.bindValue(3, "b_admin");
+    query.bindValue(4, "555");
+    query.exec();
+}
+
+bool ForumStorage::InitiateBoards() {
+    QSqlQuery query;
+
     //create boards table
-    success = query.exec(
+    bool success = query.exec(
                 "create table if not exists boards ("
                 "name      varchar,"
                 "moderator varchar)"
@@ -42,11 +97,16 @@ bool ForumStorage::InitiateStorage() {
         qDebug()<<"boards table failed";
         return false;
     }
+}
+
+bool ForumStorage::InitiatePosts() {
+    QSqlQuery query;
 
     //create posts table
-    success = query.exec(
+    bool success = query.exec(
                 "create table if not exists posts ("
                 "id       varchar primary key,"
+                "board    varchar,"
                 "poster   varchar,"
                 "authorId varchar,"
                 "title    varchar,"
@@ -59,10 +119,16 @@ bool ForumStorage::InitiateStorage() {
         qDebug()<<"posts table failed";
         return false;
     }
+}
+
+bool ForumStorage::InitiateComments() {
+    QSqlQuery query;
 
     //create comments table
-    success = query.exec(
+    bool success = query.exec(
                 "create table if not exists comments ("
+                "board    varchar,"
+                "postid   varchar,"
                 "authorId varchar,"
                 "content  varchar,"
                 "birthday varchar)"
@@ -76,6 +142,7 @@ bool ForumStorage::InitiateStorage() {
 
     return true;
 }
+
 
 ForumStorage& ForumStorage::GetNullValue() {
     static NullStorage     null;
@@ -103,6 +170,9 @@ ForumStorage& ForumStorage::GetStorage(const QString &category) {
     }
 }
 
+
+
+/**************************NullStorage**********************/
 ForumStorage& NullStorage::operator <<(QVector<QString>&) {
     throw QException();
 }
