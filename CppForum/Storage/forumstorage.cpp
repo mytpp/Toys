@@ -46,11 +46,11 @@ bool ForumStorage::InitiateStorage() {
     //create posts table
     success = query.exec(
                 "create table if not exists posts ("
-                "id varchar primary key,"
-                "poster varchar,"
+                "id       varchar primary key,"
+                "poster   varchar,"
                 "authorId varchar,"
-                "title varchar,"
-                "content varchar,"
+                "title    varchar,"
+                "content  varchar,"
                 "birthday varchar)"
              );
     if(success) {

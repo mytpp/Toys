@@ -4,6 +4,7 @@
 #include <QUuid>
 #include <QDate>
 #include <QDebug>
+#include "Storage/userinfostorage.h"
 
 namespace std {
     //make QString hashable
@@ -18,7 +19,7 @@ std::unordered_map<QString, Forum::UserInfo> Forum::users;
 
 Forum::Forum()
 {
-    GetBoards();
+    SetBoards();
     curBoard = boards.begin();
 }
 
@@ -26,9 +27,7 @@ Forum::~Forum() {}
 
 void Forum::Show() {
     SetCurBoard(0);   //navigate to the first board
-    qDebug()<<"11";
     emit ReadyToDraw();
-    qDebug()<<"22";
 }
 
 void Forum::Hide() {
@@ -106,7 +105,7 @@ QString Forum::SelectNameWhereIdEqualTo(QString id) {
     }
 }
 
-bool Forum::GetBoards() {
+bool Forum::SetBoards() {
     boards = {
         {//Board 1
             "C++11/14",
@@ -200,5 +199,7 @@ void Forum::SetExistUsers(){
     users.insert({"333", {infrastructure::COMMON_USER, 1, "c_user", "333"} });
     users.insert({"444", {infrastructure::COMMON_USER, 1, "d_user", "444"} });
     users.insert({"555", {infrastructure::ADMINISTRATOR, 0, "b_admin", "555"} });
+
+
 }
 

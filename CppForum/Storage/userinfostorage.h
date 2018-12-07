@@ -11,6 +11,10 @@ public:
 
     virtual ForumStorage& operator <<(QVector<QString>& record) override;
     virtual ForumStorage& operator >>(QVector<QString>& record) override;
+    virtual operator bool() const override;
+
+private:
+    mutable bool dataReady = false;
 };
 
 #endif // USERINFOSTORAGE_H

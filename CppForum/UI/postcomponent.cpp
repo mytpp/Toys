@@ -41,7 +41,8 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
         commentsDialog->show();
         connect(commentsDialog, &CommentsDialog::AddComment, [=]{
             comments->setText(QString::number(++commentsCount) + tr(" Comments"));
-            if(deletePost) {
+            auto status = User::Get()->GetProfile().status;
+            if(deletePost && status != infrastructure::MODERATOR) {
                 delete deletePost;
                 deletePost = nullptr;
             }

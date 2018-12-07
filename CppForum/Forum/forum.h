@@ -45,14 +45,14 @@ public:
     static infrastructure::Response Verify(QString id, QString password);
     static QString SelectNameWhereIdEqualTo(QString id);
     static void SetExistUsers();
-    static void SetBoards();
+    //static void SetBoards();
 
 signals:
     void ReadyToDraw();
     void HideForum();
 
 private:
-    bool GetBoards();
+    bool SetBoards();
 
 private:
     std::vector<Board> boards;
