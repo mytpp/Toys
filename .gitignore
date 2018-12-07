@@ -6,4 +6,5 @@
 **/Release/**
 
 *.sqlite3
+*.autosave
 

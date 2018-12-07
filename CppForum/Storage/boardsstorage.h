@@ -1,16 +1,15 @@
-#ifndef USERINFOSTORAGE_H
-#define USERINFOSTORAGE_H
+#ifndef BOARDSSTORAGE_H
+#define BOARDSSTORAGE_H
 
 #include "forumstorage.h"
 
-
-class UserInfoStorage : public ForumStorage
+class BoardsStorage : public ForumStorage
 {
 public:
-    UserInfoStorage();
+    BoardsStorage();
 
     virtual ForumStorage& operator <<(QVector<QString>& record) override;
     virtual ForumStorage& operator >>(QVector<QString>& record) override;
 };
 
-#endif // USERINFOSTORAGE_H
+#endif // BOARDSSTORAGE_H

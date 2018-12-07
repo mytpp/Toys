@@ -44,7 +44,8 @@ SOURCES += \
     Storage/forumstorage.cpp \
     Storage/userinfostorage.cpp \
     Storage/postsstorage.cpp \
-    Storage/commentsstorage.cpp
+    Storage/commentsstorage.cpp \
+    Storage/boardsstorage.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -68,4 +69,5 @@ HEADERS += \
     Storage/forumstorage.h \
     Storage/userinfostorage.h \
     Storage/postsstorage.h \
-    Storage/commentsstorage.h
+    Storage/commentsstorage.h \
+    Storage/boardsstorage.h

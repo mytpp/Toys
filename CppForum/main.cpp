@@ -2,6 +2,7 @@
 #include "UI/logindialog.h"
 #include <QApplication>
 #include "Forum/forum.h"
+#include "Storage/forumstorage.h"
 #include <QSqlDatabase>
 #include <QDebug>
 
@@ -22,6 +23,7 @@ int main(int argc, char *argv[])
     db.setUserName(QObject::tr("mytpp"));
     db.setPassword(QObject::tr("mytpp"));
     qDebug()<<db.open();
+    qDebug()<<ForumStorage::InitiateStorage();
 
     Forum::SetExistUsers();
 
