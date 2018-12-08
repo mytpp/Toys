@@ -7,7 +7,7 @@ CommentsStorage::CommentsStorage()
 }
 
 ForumStorage& CommentsStorage::operator <<(QVector<QString>& record) {
-    if(record.size() != 3){
+    if(record.size() != 5){
         qDebug()<<"A comment record must have 3 fields";
         return ForumStorage::GetNullValue();
     }

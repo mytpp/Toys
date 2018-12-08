@@ -13,13 +13,15 @@ ForumStorage::ForumStorage()
 }
 
 bool ForumStorage::InitiateStorage() {
-
-    return false;
+    if(!InitiateUserInfo()) {
+        return false;
+    }
+    return true;
 }
 
 bool ForumStorage::InitiateUserInfo() {
     QSqlQuery query;
-
+qDebug()<<"here";
     //create userinfo table
     bool success = query.exec(
                "create table if not exists userinfo ("
@@ -44,7 +46,9 @@ bool ForumStorage::InitiateUserInfo() {
     query.bindValue(2, 0);
     query.bindValue(3, "a_admin");
     query.bindValue(4, "000");
-    query.exec();
+    if(!query.exec()){
+        qDebug()<<"insert failed";
+    }
 
     query.bindValue(0, "111");
     query.bindValue(1, "MODERATOR");
@@ -80,6 +84,8 @@ bool ForumStorage::InitiateUserInfo() {
     query.bindValue(3, "b_admin");
     query.bindValue(4, "555");
     query.exec();
+
+    return true;
 }
 
 bool ForumStorage::InitiateBoards() {
@@ -97,6 +103,18 @@ bool ForumStorage::InitiateBoards() {
         qDebug()<<"boards table failed";
         return false;
     }
+
+    query.prepare("insert into boards values (?,?)");
+
+    query.bindValue(0, "C++11/14");
+    query.bindValue(1, "111");
+    query.exec();
+
+    query.bindValue(0, "C++17");
+    query.bindValue(1, "");
+    query.exec();
+
+    return true;
 }
 
 bool ForumStorage::InitiatePosts() {
@@ -119,6 +137,12 @@ bool ForumStorage::InitiatePosts() {
         qDebug()<<"posts table failed";
         return false;
     }
+
+    query.prepare("insert into posts values (?,?,?,?,?,?,?)");
+
+
+
+    return true;
 }
 
 bool ForumStorage::InitiateComments() {

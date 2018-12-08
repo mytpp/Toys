@@ -41,6 +41,7 @@ public:
     NullStorage() {}
     virtual ForumStorage& operator <<(QVector<QString>& record) override;
     virtual ForumStorage& operator >>(QVector<QString>& record) override;
+    //operator bool() (inherited) returns false
 };
 
 #endif // FORUMSTORAGE_H

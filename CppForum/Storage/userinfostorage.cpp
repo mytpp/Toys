@@ -33,25 +33,27 @@ ForumStorage& UserInfoStorage::operator <<(QVector<QString>& record) {
 ForumStorage& UserInfoStorage::operator >>(QVector<QString>& record) {
     //We don't use "select *" here,
     //since the order of the columns is not defined if "select *" is used.
-    if(!dataReady){
-        query.exec("select id, status, postsCount, name, password from userinfo");
-        dataReady = true;
+    if(!dataAvailable){
+        dataAvailable = query.exec(
+            "select id, status, postsCount, name, password from userinfo"
+        );
+        //qDebug()<<"query size: "<<query.numRowsAffected(); -> 0
         query.next();
     }
 
     if(query.isValid()) {
+        dataAvailable = true;
         for(int i=0; i<5; i++)
             record.push_back(query.value(i).toString());
-        query.next(); // so that we can see if there is remaining record in the
-                      // result of 'select statement' (via query.isValid())
+        query.next();  // so that we can see if there is remaining record in the
+                       // result of 'select statement' (via query.isValid())
+    } else {
+        dataAvailable = false;
     }
 
     return *this;
 }
 
 UserInfoStorage::operator bool() const{
-    if(query.isValid())
-        return true;
-    dataReady = false;
-    return false;
+    return dataAvailable;
 }

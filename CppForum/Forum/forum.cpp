@@ -3,6 +3,7 @@
 #include <iterator>
 #include <QUuid>
 #include <QDate>
+#include <QVector>
 #include <QDebug>
 #include "Storage/userinfostorage.h"
 
@@ -193,14 +194,34 @@ bool Forum::SetBoards() {
 }
 
 void Forum::SetExistUsers(){
-    users.insert({"000", {infrastructure::ADMINISTRATOR, 0, "a_admin", "000"} });
-    users.insert({"111", {infrastructure::MODERATOR, 2, "a_user", "111"} });
-    users.insert({"222", {infrastructure::COMMON_USER, 1, "b_user", "222"} });
-    users.insert({"333", {infrastructure::COMMON_USER, 1, "c_user", "333"} });
-    users.insert({"444", {infrastructure::COMMON_USER, 1, "d_user", "444"} });
-    users.insert({"555", {infrastructure::ADMINISTRATOR, 0, "b_admin", "555"} });
+//    users.insert({"000", {infrastructure::ADMINISTRATOR, 0, "a_admin", "000"} });
+//    users.insert({"111", {infrastructure::MODERATOR, 2, "a_user", "111"} });
+//    users.insert({"222", {infrastructure::COMMON_USER, 1, "b_user", "222"} });
+//    users.insert({"333", {infrastructure::COMMON_USER, 1, "c_user", "333"} });
+//    users.insert({"444", {infrastructure::COMMON_USER, 1, "d_user", "444"} });
+//    users.insert({"555", {infrastructure::ADMINISTRATOR, 0, "b_admin", "555"} });
 
     ForumStorage& storage = ForumStorage::GetStorage("userinfo");
+    QVector<QString> record;
+    while (storage>>record) {
+        QString id = record[0];
+        infrastructure::Status status;
+        if (record[1] == "ADMINISTRATOR")
+            status =infrastructure::ADMINISTRATOR;
+        else if (record[1] == "MODERATOR")
+            status = infrastructure::MODERATOR;
+        else if (record[1] == "COMMON_USER")
+            status = infrastructure::COMMON_USER;
+        else
+            status = infrastructure::ANONYMOUS;
+        uint16_t postCount = record[2].toInt();
+        QString  name      = record[3];
+        QString  password  = record[4];
+
+        users.insert({id, {status, postCount, name, password}});
+
+        record.clear();
+    }
 
 }
 

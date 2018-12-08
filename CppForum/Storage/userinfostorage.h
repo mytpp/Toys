@@ -14,7 +14,7 @@ public:
     virtual operator bool() const override;
 
 private:
-    mutable bool dataReady = false;
+    bool dataAvailable = false;
 };
 
 #endif // USERINFOSTORAGE_H
