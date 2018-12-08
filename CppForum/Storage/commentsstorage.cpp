@@ -7,17 +7,18 @@ CommentsStorage::CommentsStorage()
 }
 
 ForumStorage& CommentsStorage::operator <<(QVector<QString>& record) {
-    if(record.size() != 5){
+    if(record.size() != 6){
         qDebug()<<"A comment record must have 3 fields";
         return ForumStorage::GetNullValue();
     }
 
-    query.prepare("insert into comments values (?,?,?,?,?)");
+    query.prepare("insert into comments values (?,?,?,?,?,?)");
     query.addBindValue(record[0]);
     query.addBindValue(record[1]);
     query.addBindValue(record[2]);
     query.addBindValue(record[3]);
     query.addBindValue(record[4]);
+    query.addBindValue(record[5]);
 
     bool success = query.exec();
     if(success) {

@@ -45,7 +45,6 @@ public:
     static infrastructure::Response Verify(QString id, QString password);
     static QString SelectNameWhereIdEqualTo(QString id);
     static void SetExistUsers();
-    //static void SetBoards();
 
 signals:
     void ReadyToDraw();

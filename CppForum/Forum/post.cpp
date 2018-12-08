@@ -21,3 +21,8 @@ bool Post::AddComment(const QString &content) const {
                           QDate::currentDate());
     return true;
 }
+
+int Post::CreatePostId() {
+    static int value = 10;
+    return value++;
+}

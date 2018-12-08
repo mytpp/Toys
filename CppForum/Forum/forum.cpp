@@ -137,7 +137,7 @@ bool Forum::SetBoards() {
                     QDate::currentDate().addDays(-3),
                     {//comments
                         {//1st
-                            "123",
+                            "444",
                             "niubility!",
                             QDate::currentDate().addDays(-3)
                         },
@@ -162,7 +162,7 @@ bool Forum::SetBoards() {
                     QDate::currentDate().addMonths(-1),
                     {//comments
                         {//1st
-                            "123",
+                            "333",
                             "Awesome!",
                             QDate::currentDate().addDays(-15)
                         },

@@ -4,6 +4,7 @@
 #include "Storage/postsstorage.h"
 #include "Storage/commentsstorage.h"
 #include <QSqlQuery>
+#include <QDate>
 #include <QException>
 #include <QDebug>
 
@@ -13,7 +14,10 @@ ForumStorage::ForumStorage()
 }
 
 bool ForumStorage::InitiateStorage() {
-    if(!InitiateUserInfo()) {
+    if(!InitiateUserInfo()||
+       !InitiateBoards()  ||
+       !InitiatePosts()   ||
+       !InitiateComments()  ) {
         return false;
     }
     return true;
@@ -46,9 +50,10 @@ qDebug()<<"here";
     query.bindValue(2, 0);
     query.bindValue(3, "a_admin");
     query.bindValue(4, "000");
-    if(!query.exec()){
-        qDebug()<<"insert failed";
-    }
+    query.exec(); //if there is already a existing one, it returns false
+//    if(!query.exec()){
+//        qDebug()<<"insert failed";
+//    }
 
     query.bindValue(0, "111");
     query.bindValue(1, "MODERATOR");
@@ -140,7 +145,50 @@ bool ForumStorage::InitiatePosts() {
 
     query.prepare("insert into posts values (?,?,?,?,?,?,?)");
 
+    query.bindValue(0, "0");
+    query.bindValue(1, "C++11/14");
+    query.bindValue(2, "c_user");
+    query.bindValue(3, "333");
+    query.bindValue(4, "lambda-calculus");
+    query.bindValue(5, "Qt Creator's C++ compliler frontend doesn't support init capture");
+    query.bindValue(6, QDate::currentDate().addDays(-5).toString());
+    query.exec();
 
+    query.bindValue(0, "1");
+    query.bindValue(1, "C++11/14");
+    query.bindValue(2, "b_user");
+    query.bindValue(3, "222");
+    query.bindValue(4, "memory model");
+    query.bindValue(5, "What's new about C++'s memory model in the C++14 standard?");
+    query.bindValue(6, QDate::currentDate().addDays(-4).toString());
+    query.exec();
+
+    query.bindValue(0, "2");
+    query.bindValue(1, "C++11/14");
+    query.bindValue(2, "a_user");
+    query.bindValue(3, "111");
+    query.bindValue(4, "std::packaged_task");
+    query.bindValue(5, "The class template std::packaged_task wraps any Callable target (function, lambda expression, bind expression, or another function object) so that it can be invoked asynchronously. Its return value or exception thrown is stored in a shared state which can be accessed through std::future objects. ");
+    query.bindValue(6, QDate::currentDate().addDays(-3).toString());
+    query.exec();
+
+    query.bindValue(0, "3");
+    query.bindValue(1, "C++17");
+    query.bindValue(2, "a_user");
+    query.bindValue(3, "111");
+    query.bindValue(4, "structured binding");
+    query.bindValue(5, "I used structured binding in my C lexical analyzer!");
+    query.bindValue(6, QDate::currentDate().addMonths(-1).toString());
+    query.exec();
+
+    query.bindValue(0, "4");
+    query.bindValue(1, "C++17");
+    query.bindValue(2, "d_user");
+    query.bindValue(3, "444");
+    query.bindValue(4, "file system");
+    query.bindValue(5, "Can I use C++'s filesystem to implement a FUSE supported network storage?");
+    query.bindValue(6, QDate::currentDate().addDays(-7).toString());
+    query.exec();
 
     return true;
 }
@@ -153,6 +201,7 @@ bool ForumStorage::InitiateComments() {
                 "create table if not exists comments ("
                 "board    varchar,"
                 "postid   varchar,"
+                "author   varchar,"
                 "authorId varchar,"
                 "content  varchar,"
                 "birthday varchar)"
@@ -163,6 +212,48 @@ bool ForumStorage::InitiateComments() {
         qDebug()<<"comments table failed";
         return false;
     }
+
+    query.prepare("insert into comments values (?,?,?,?,?,?)");
+
+    query.bindValue(0, "C++11/14");
+    query.bindValue(1, "2");
+    query.bindValue(2, "d_user");
+    query.bindValue(3, "444");
+    query.bindValue(4, "niubility!");
+    query.bindValue(5, QDate::currentDate().addDays(-3).toString());
+    query.exec();
+
+    query.bindValue(0, "C++11/14");
+    query.bindValue(1, "2");
+    query.bindValue(2, "b_user");
+    query.bindValue(3, "222");
+    query.bindValue(4, "why do I need packaged_task when I have std::async?");
+    query.bindValue(5, QDate::currentDate().addDays(-3).toString());
+    query.exec();
+
+    query.bindValue(0, "C++17");
+    query.bindValue(1, "3");
+    query.bindValue(2, "c_user");
+    query.bindValue(3, "333");
+    query.bindValue(4, "Awesome!");
+    query.bindValue(5, QDate::currentDate().addDays(-15).toString());
+    query.exec();
+
+    query.bindValue(0, "C++17");
+    query.bindValue(1, "3");
+    query.bindValue(2, "b_user");
+    query.bindValue(3, "222");
+    query.bindValue(4, "Why my MSVC doesn's compile the C++17 code?");
+    query.bindValue(5, QDate::currentDate().addDays(-10).toString());
+    query.exec();
+
+    query.bindValue(0, "C++17");
+    query.bindValue(1, "4");
+    query.bindValue(2, "a_user");
+    query.bindValue(3, "111");
+    query.bindValue(4, "I also want to know the answer...");
+    query.bindValue(5, QDate::currentDate().addDays(-2).toString());
+    query.exec();
 
     return true;
 }

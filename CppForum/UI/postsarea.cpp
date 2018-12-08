@@ -4,7 +4,6 @@
 #include "Forum/forum.h"
 #include <algorithm>
 #include <QMessageBox>
-#include <QUuid>
 #include "Forum/post.h"
 #include "User/user.h"
 #include "forumui.h"
@@ -64,7 +63,8 @@ void PostsArea::OnAddPost(const QString &title, const QString &content) {
     }
 
     //add new post
-    auto guid = QUuid::createUuid().toString();
+    int id = Post::CreatePostId();
+    auto guid = QString().setNum(id);
     if(Forum::Get().GetCurBoard().AddPost(guid, title, content)){
         //add new post to UI
         auto* postComponent = new PostComponent(

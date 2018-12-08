@@ -26,6 +26,8 @@ public:
     const std::list<Comment>& Comments() const { return comments; }
     bool AddComment(const QString& content) const;
 
+    static int CreatePostId();
+
 private:
     QString id;
     QString poster;
