@@ -130,7 +130,7 @@ bool ForumStorage::InitiatePosts() {
                 "create table if not exists posts ("
                 "id       varchar primary key,"
                 "board    varchar,"
-                "poster   varchar,"
+                "author   varchar,"
                 "authorId varchar,"
                 "title    varchar,"
                 "content  varchar,"

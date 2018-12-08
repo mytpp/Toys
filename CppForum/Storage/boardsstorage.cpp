@@ -28,5 +28,21 @@ ForumStorage& BoardsStorage::operator <<(QVector<QString>& record) {
 }
 
 ForumStorage& BoardsStorage::operator >>(QVector<QString>& record) {
-    return ForumStorage::GetNullValue();
+    if(!dataAvailable) {
+        dataAvailable = query.exec("select name, moderator from boards");
+        query.next();
+    }
+
+    if(query.isValid()) {
+        dataAvailable = true;
+        for(int i=0; i<2; i++)
+            record.push_back(query.value(i).toString());
+        query.next();  // so that we can see if there is remaining record in the
+                       // result of 'select statement' (via query.isValid())
+    } else {
+        dataAvailable = false;
+    }
+
+    return *this;
 }
+

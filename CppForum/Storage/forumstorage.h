@@ -21,7 +21,7 @@ public:
     virtual ForumStorage& operator <<(QVector<QString>& record) =0;
     //retrieve data from database
     virtual ForumStorage& operator >>(QVector<QString>& record) =0;
-    virtual operator bool() const { return false; }
+    virtual operator bool() const { return dataAvailable; }
 
 private:
     static bool InitiateUserInfo();
@@ -31,6 +31,7 @@ private:
 
 protected:
     QSqlQuery query;
+    bool dataAvailable = false;
 };
 
 

@@ -33,5 +33,22 @@ ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
 }
 
 ForumStorage& PostsStorage::operator >>(QVector<QString>& record) {
-    return ForumStorage::GetNullValue();
+    if(!dataAvailable){
+        dataAvailable = query.exec(
+            "select id, board, author, authorId, title, content, birthday from posts"
+        );
+        query.next();
+    }
+
+    if(query.isValid()) {
+        dataAvailable = true;
+        for(int i=0; i<7; i++)
+            record.push_back(query.value(i).toString());
+        query.next();  // so that we can see if there is remaining record in the
+                       // result of 'select statement' (via query.isValid())
+    } else {
+        dataAvailable = false;
+    }
+
+    return *this;
 }

@@ -54,6 +54,3 @@ ForumStorage& UserInfoStorage::operator >>(QVector<QString>& record) {
     return *this;
 }
 
-UserInfoStorage::operator bool() const{
-    return dataAvailable;
-}
