@@ -52,6 +52,8 @@ signals:
 
 private:
     bool SetBoards();
+    bool SetPosts();
+    bool SetComments();
 
 private:
     std::vector<Board> boards;

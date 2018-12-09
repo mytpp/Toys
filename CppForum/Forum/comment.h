@@ -15,6 +15,8 @@ public:
     const QString& Content()     const { return content; }
     const QDate&   PublishDate() const { return birthday; }
 
+    static int CreateCommentId();
+
 private:
     QString authorId;
     QString content;

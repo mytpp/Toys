@@ -22,7 +22,7 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
     //add Posts to this area
     std::for_each(posts.begin(), posts.end(),
         [postsLayout = postsLayout, &postComponents = postComponents, &index, this]
-        (const Post& post) {
+        (Post& post){
         auto* postComponent = new PostComponent(post, index++, this);
         postComponents.append(postComponent);
         postsLayout->addWidget(postComponent);
@@ -65,25 +65,19 @@ void PostsArea::OnAddPost(const QString &title, const QString &content) {
     //add new post
     int id = Post::CreatePostId();
     auto guid = QString().setNum(id);
-    if(Forum::Get().GetCurBoard().AddPost(guid, title, content)){
-        //add new post to UI
-        auto* postComponent = new PostComponent(
-                    Post(guid,
-                         User::Get()->Id(),
-                         title,
-                         content,
-                         QDate::currentDate()
-                         ), //end Post()
-                    postComponents.size(),
-                    this);//end new PostComponent()
-        postComponents.append(postComponent);
+    Post& post = Forum::Get().GetCurBoard().AddPost(guid, title, content);
+    //add new post to UI
+    auto* postComponent = new PostComponent(
+                post,
+                postComponents.size(),
+                this);//end new PostComponent()
+    postComponents.append(postComponent);
 
-        //refresh the end part of PostsArea
-        delete postEdit;
-        postsLayout->addWidget(postComponent);
-        postEdit = new PostEdit(this);
-        postsLayout->addWidget(postEdit);
-    }//end if
+    //refresh the end part of PostsArea
+    delete postEdit;
+    postsLayout->addWidget(postComponent);
+    postEdit = new PostEdit(this);
+    postsLayout->addWidget(postEdit);
 
     ui::mainWindow->RefreshUserInfoBar();
 }

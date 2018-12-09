@@ -8,7 +8,7 @@
 #include "User/user.h"
 #include <QDebug>
 
-CommentsDialog::CommentsDialog(const Post& post, QWidget *parent)
+CommentsDialog::CommentsDialog(Post& post, QWidget *parent)
     :QDialog(parent),
       post(post)
 {

@@ -99,7 +99,7 @@ bool ForumStorage::InitiateBoards() {
     //create boards table
     bool success = query.exec(
                 "create table if not exists boards ("
-                "name      varchar,"
+                "name      varchar primary key,"
                 "moderator varchar)"
              );
     if(success) {
@@ -199,6 +199,7 @@ bool ForumStorage::InitiateComments() {
     //create comments table
     bool success = query.exec(
                 "create table if not exists comments ("
+                "id       varchar primary key,"
                 "board    varchar,"
                 "postid   varchar,"
                 "author   varchar,"
@@ -213,46 +214,51 @@ bool ForumStorage::InitiateComments() {
         return false;
     }
 
-    query.prepare("insert into comments values (?,?,?,?,?,?)");
+    query.prepare("insert into comments values (?,?,?,?,?,?,?)");
 
-    query.bindValue(0, "C++11/14");
-    query.bindValue(1, "2");
-    query.bindValue(2, "d_user");
-    query.bindValue(3, "444");
-    query.bindValue(4, "niubility!");
-    query.bindValue(5, QDate::currentDate().addDays(-3).toString());
+    query.bindValue(0, "0");
+    query.bindValue(1, "C++11/14");
+    query.bindValue(2, "2");
+    query.bindValue(3, "d_user");
+    query.bindValue(4, "444");
+    query.bindValue(5, "niubility!");
+    query.bindValue(6, QDate::currentDate().addDays(-3).toString());
     query.exec();
 
-    query.bindValue(0, "C++11/14");
-    query.bindValue(1, "2");
-    query.bindValue(2, "b_user");
-    query.bindValue(3, "222");
-    query.bindValue(4, "why do I need packaged_task when I have std::async?");
-    query.bindValue(5, QDate::currentDate().addDays(-3).toString());
+    query.bindValue(0, "1");
+    query.bindValue(1, "C++11/14");
+    query.bindValue(2, "2");
+    query.bindValue(3, "b_user");
+    query.bindValue(4, "222");
+    query.bindValue(5, "why do I need packaged_task when I have std::async?");
+    query.bindValue(6, QDate::currentDate().addDays(-3).toString());
     query.exec();
 
-    query.bindValue(0, "C++17");
-    query.bindValue(1, "3");
-    query.bindValue(2, "c_user");
-    query.bindValue(3, "333");
-    query.bindValue(4, "Awesome!");
-    query.bindValue(5, QDate::currentDate().addDays(-15).toString());
+    query.bindValue(0, "2");
+    query.bindValue(1, "C++17");
+    query.bindValue(2, "3");
+    query.bindValue(3, "c_user");
+    query.bindValue(4, "333");
+    query.bindValue(5, "Awesome!");
+    query.bindValue(6, QDate::currentDate().addDays(-15).toString());
     query.exec();
 
-    query.bindValue(0, "C++17");
-    query.bindValue(1, "3");
-    query.bindValue(2, "b_user");
-    query.bindValue(3, "222");
-    query.bindValue(4, "Why my MSVC doesn's compile the C++17 code?");
-    query.bindValue(5, QDate::currentDate().addDays(-10).toString());
+    query.bindValue(0, "3");
+    query.bindValue(1, "C++17");
+    query.bindValue(2, "3");
+    query.bindValue(3, "b_user");
+    query.bindValue(4, "222");
+    query.bindValue(5, "Why my MSVC doesn's compile the C++17 code?");
+    query.bindValue(6, QDate::currentDate().addDays(-10).toString());
     query.exec();
 
-    query.bindValue(0, "C++17");
-    query.bindValue(1, "4");
-    query.bindValue(2, "a_user");
-    query.bindValue(3, "111");
-    query.bindValue(4, "I also want to know the answer...");
-    query.bindValue(5, QDate::currentDate().addDays(-2).toString());
+    query.bindValue(0, "4");
+    query.bindValue(1, "C++17");
+    query.bindValue(2, "4");
+    query.bindValue(3, "a_user");
+    query.bindValue(4, "111");
+    query.bindValue(5, "I also want to know the answer...");
+    query.bindValue(6, QDate::currentDate().addDays(-2).toString());
     query.exec();
 
     return true;
@@ -260,7 +266,7 @@ bool ForumStorage::InitiateComments() {
 
 
 ForumStorage& ForumStorage::GetNullValue() {
-    static NullStorage     null;
+    static NullStorage null;
     return null;
 }
 

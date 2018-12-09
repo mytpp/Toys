@@ -2,6 +2,7 @@
 #include "User/user.h"
 #include <QDate>
 #include <iterator>
+#include <algorithm>
 
 Board::Board(const QString &name, const std::list<Post> &posts)
     :name(name)
@@ -15,16 +16,23 @@ Board::Board(const QString &name, const QString &moderatorId,
     ,posts(posts)
 { }
 
-bool Board::AddPost(const QString& guid, const QString &title, const QString &content){
-    posts.emplace_back(
+void Board::AddInitialComment(const Comment &comment, const QString& postId) {
+    auto p = std::find_if(posts.begin(), posts.end(),
+                          [&postId](auto& post) {return postId == post.Id();});
+    if(p != posts.end())
+        p->AddInitialComment(comment);
+}
+
+Post& Board::AddPost(const QString& guid, const QString &title, const QString &content){
+    User::Get()->AddPost();
+    return posts.emplace_back( //need c++17 supported
         guid,
+        User::Get()->Name(),
         User::Get()->Id(),
         title,
         content,
         QDate::currentDate()
     );
-    User::Get()->AddPost();
-    return true;
 }
 
 bool Board::DeletePost(size_t index) {

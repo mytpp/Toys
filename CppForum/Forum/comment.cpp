@@ -9,3 +9,8 @@ Comment::Comment(const QString& author,
 {
 
 }
+
+int Comment::CreateCommentId() {
+    static int value = 10;
+    return value++;
+}

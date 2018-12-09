@@ -16,7 +16,7 @@ class PostComponent : public QWidget
 {
     Q_OBJECT
 public:
-    explicit PostComponent(const Post& post, const int index, QWidget *parent = nullptr);
+    explicit PostComponent(Post& post, const int index, QWidget *parent = nullptr);
     void DecIndex() { --index; }
     //void IncIndex() { ++index; }
 

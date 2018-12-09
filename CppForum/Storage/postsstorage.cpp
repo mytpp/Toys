@@ -8,7 +8,7 @@ PostsStorage::PostsStorage()
 
 ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
     if(record.size() != 7){
-        qDebug()<<"A post record must have 6 fields";
+        qDebug()<<"A post record must have 7 fields";
         return ForumStorage::GetNullValue();
     }
 

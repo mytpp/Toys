@@ -6,6 +6,9 @@
 #include <QVector>
 #include <QDebug>
 #include "Storage/userinfostorage.h"
+#include "Storage/boardsstorage.h"
+#include "Storage/postsstorage.h"
+#include "Storage/commentsstorage.h"
 
 
 namespace std {
@@ -108,99 +111,122 @@ QString Forum::SelectNameWhereIdEqualTo(QString id) {
 }
 
 bool Forum::SetBoards() {
-    boards = {
-        {//Board 1
-            "C++11/14",
-            "111",
-            {//Posts lists
-                {//Post 1
-                    QUuid::createUuid().toString(),
-                    "333",
-                    "lambda-calculus",
-                    "Qt Creator's C++ compliler frontend doesn't support init capture",
-                    QDate::currentDate().addDays(-5),
-                    {}
-                },
-                {//Post 2
-                    QUuid::createUuid().toString(),
-                    "222",
-                    "memory model",
-                    "What's new about C++'s memory model in the C++14 standard?",
-                    QDate::currentDate().addDays(-4),
-                    {}
-                },
-                {//Post 3
-                    QUuid::createUuid().toString(),
-                    "111",
-                    "std::packaged_task",
-                    "The class template std::packaged_task wraps any Callable target (function, lambda expression, bind expression, or another function object) so that it can be invoked asynchronously. Its return value or exception thrown is stored in a shared state which can be accessed through std::future objects. ",
-                    QDate::currentDate().addDays(-3),
-                    {//comments
-                        {//1st
-                            "444",
-                            "niubility!",
-                            QDate::currentDate().addDays(-3)
-                        },
-                        {//2nd
-                            "222",
-                            "why do I need packaged_task when I have std::async?",
-                            QDate::currentDate().addDays(-3)
-                        }
-                    }
-                },
+    ForumStorage& storage = ForumStorage::GetStorage("boards");
+    QVector<QString> record;
+    while (storage>>record) {
+        //QString name      = record[0];
+        //QString moderator = record[1];
+        boards.emplace_back(record[0], record[1]);
+        record.clear();
+    }
+//    boards = {
+//        {//Board 1
+//            "C++11/14",
+//            "111",
+//            {//Posts lists
+//                {//Post 1
+//                    QUuid::createUuid().toString(),
+//                    "333",
+//                    "lambda-calculus",
+//                    "Qt Creator's C++ compliler frontend doesn't support init capture",
+//                    QDate::currentDate().addDays(-5),
+//                    {}
+//                },
+//                {//Post 2
+//                    QUuid::createUuid().toString(),
+//                    "222",
+//                    "memory model",
+//                    "What's new about C++'s memory model in the C++14 standard?",
+//                    QDate::currentDate().addDays(-4),
+//                    {}
+//                },
+//                {//Post 3
+//                    QUuid::createUuid().toString(),
+//                    "111",
+//                    "std::packaged_task",
+//                    "The class template std::packaged_task wraps any Callable target (function, lambda expression, bind expression, or another function object) so that it can be invoked asynchronously. Its return value or exception thrown is stored in a shared state which can be accessed through std::future objects. ",
+//                    QDate::currentDate().addDays(-3),
+//                    {//comments
+//                        {//1st
+//                            "444",
+//                            "niubility!",
+//                            QDate::currentDate().addDays(-3)
+//                        },
+//                        {//2nd
+//                            "222",
+//                            "why do I need packaged_task when I have std::async?",
+//                            QDate::currentDate().addDays(-3)
+//                        }
+//                    }
+//                },
 
-            }
-        },
-        {//Board 2
-            "C++17",
-            {//Posts lists
-                {//Post 1
-                    QUuid::createUuid().toString(),
-                    "111",
-                    "structured binding",
-                    "I used structured binding in my C lexical analyzer!",
-                    QDate::currentDate().addMonths(-1),
-                    {//comments
-                        {//1st
-                            "333",
-                            "Awesome!",
-                            QDate::currentDate().addDays(-15)
-                        },
-                        {//2nd
-                            "222",
-                            "Why my MSVC doesn's compile the C++17 code?",
-                            QDate::currentDate().addDays(-10)
-                        }
-                    }
-                },
-                {//Post 2
-                    QUuid::createUuid().toString(),
-                    "444",
-                    "file system",
-                    "Can I use C++'s filesystem to implement a FUSE supported network storage?",
-                    QDate::currentDate().addDays(-7),
-                    {//comments
-                        {//1st
-                            "111",
-                            "I also want to know the answer...",
-                            QDate::currentDate().addDays(-2)
-                        }
-                    }//end comments
-                }//end post 2
-            }//end posts list
-        }//end board 2
-    };
+//            }
+//        },
+//        {//Board 2
+//            "C++17",
+//            {//Posts lists
+//                {//Post 1
+//                    QUuid::createUuid().toString(),
+//                    "111",
+//                    "structured binding",
+//                    "I used structured binding in my C lexical analyzer!",
+//                    QDate::currentDate().addMonths(-1),
+//                    {//comments
+//                        {//1st
+//                            "333",
+//                            "Awesome!",
+//                            QDate::currentDate().addDays(-15)
+//                        },
+//                        {//2nd
+//                            "222",
+//                            "Why my MSVC doesn's compile the C++17 code?",
+//                            QDate::currentDate().addDays(-10)
+//                        }
+//                    }
+//                },
+//                {//Post 2
+//                    QUuid::createUuid().toString(),
+//                    "444",
+//                    "file system",
+//                    "Can I use C++'s filesystem to implement a FUSE supported network storage?",
+//                    QDate::currentDate().addDays(-7),
+//                    {//comments
+//                        {//1st
+//                            "111",
+//                            "I also want to know the answer...",
+//                            QDate::currentDate().addDays(-2)
+//                        }
+//                    }//end comments
+//                }//end post 2
+//            }//end posts list
+//        }//end board 2
+//    };
+    return true;
+}
+
+bool Forum::SetPosts() {
+    ForumStorage& storage = ForumStorage::GetStorage("posts");
+    QVector<QString> record;
+    while (storage>>record) {
+//        QString id       = record[0];
+//        QString board    = record[1];
+//        QString author   = record[2];
+//        QString authorId = record[3];
+//        QString title    = record[4];
+//        QString content  = record[5];
+        QDate birthday = QDate::fromString(record[6]);
+        auto p = std::find_if(boards.begin(), boards.end(),
+                     [&val = record[0]](auto& board) {return val==board.Name();});
+        if(p != boards.end())
+            p->AddInitialPost(
+                { record[0], record[2], record[3],
+                  record[4], record[5], birthday }
+            );
+    }
     return true;
 }
 
 void Forum::SetExistUsers(){
-//    users.insert({"000", {infrastructure::ADMINISTRATOR, 0, "a_admin", "000"} });
-//    users.insert({"111", {infrastructure::MODERATOR, 2, "a_user", "111"} });
-//    users.insert({"222", {infrastructure::COMMON_USER, 1, "b_user", "222"} });
-//    users.insert({"333", {infrastructure::COMMON_USER, 1, "c_user", "333"} });
-//    users.insert({"444", {infrastructure::COMMON_USER, 1, "d_user", "444"} });
-//    users.insert({"555", {infrastructure::ADMINISTRATOR, 0, "b_admin", "555"} });
-
     ForumStorage& storage = ForumStorage::GetStorage("userinfo");
     QVector<QString> record;
     while (storage>>record) {
@@ -219,7 +245,6 @@ void Forum::SetExistUsers(){
         QString  password  = record[4];
 
         users.insert({id, {status, postCount, name, password}});
-
         record.clear();
     }
 

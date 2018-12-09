@@ -15,7 +15,7 @@ class CommentsDialog : public QDialog
 {
     Q_OBJECT
 public:
-    CommentsDialog(const Post& post, QWidget *parent = 0);
+    CommentsDialog(Post& post, QWidget *parent = 0);
 
 signals:
     void AddComment();
@@ -28,7 +28,7 @@ private:
     void CreateCommentEdit();
 
 private:
-    const Post& post;
+    Post& post;
 
     QVBoxLayout *dialogLayout;
     QVBoxLayout *commentLayout;

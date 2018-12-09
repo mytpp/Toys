@@ -7,7 +7,7 @@
 #include <QDebug>
 
 
-PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
+PostComponent::PostComponent(Post &post, const int index, QWidget *parent)
     :QWidget(parent)
     ,index(index)
 {
@@ -36,7 +36,7 @@ PostComponent::PostComponent(const Post &post, const int index, QWidget *parent)
 
     //connect 'comment' button to commentsdialog
     connect(comments, &QPushButton::clicked,
-            [=]{
+            [=, &post]{
         commentsDialog = new CommentsDialog(post, this);
         commentsDialog->show();
         connect(commentsDialog, &CommentsDialog::AddComment, [=]{
