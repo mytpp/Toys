@@ -39,7 +39,6 @@ def parse_config(file_name):
         content = f.read()
     config = yaml.load(content)
     this_ip = socket.gethostbyname(socket.gethostname())
-    #config['root'] = os.path.normpath(config['root'])
     config['ip'] = this_ip
     print('Load config successfully')
     print(config)
@@ -47,12 +46,12 @@ def parse_config(file_name):
 
 
 #---------------------------------Daemon Side----------------------------------#
-def local_to_physical(localpath):
-    relative_path = localpath.split(config['root'])[1]
-    return '//' + config['name'] + relative_path
+def root_to_physical(localpath):
+    return localpath.split(config['root'])[1]
 
-def load_path(path_list, cursor, localhost = True):
+def load_path(root, cursor, localhost = True):
     global config
+    path_list = [root + '/' + subpath for subpath in os.listdir(root)]
     for path in path_list:
         logging.info(path)
         ctime_stamp = os.path.getctime(path)
@@ -61,23 +60,23 @@ def load_path(path_list, cursor, localhost = True):
         mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
         cursor.execute('''
             insert into filesystem
-            (phsical_path, category, ctime, mtime, size, hostip)
-            values  (?, ?, ?, ?, ?, ?)
+            (phsical_path, category, ctime, mtime, size, host_ip, host_name)
+            values  (?, ?, ?, ?, ?, ?, ?)
             ''', 
-            (local_to_physical(path) , os.path.isfile(path), 
-            ctime, mtime, os.path.getsize(path), config['ip'])
+            (root_to_physical(path) , os.path.isfile(path), 
+            ctime, mtime, os.path.getsize(path), config['ip'], config['name'])
         )
         metaDB.commit()
         # recursive load path
         if(os.path.isdir(path)):
-            load_path([path + '/' + subpath for subpath in os.listdir(path)], cursor)
+            load_path(path, cursor)
         
 def update_db():
     global config, metaDB
     cursor = metaDB.cursor()
-    cursor.execute('delete from filesystem where hostip = ?', (config['ip'],))
+    cursor.execute('delete from filesystem where host_ip = ?', (config['ip'],))
     # insert physical paths in this host
-    load_path([config['root']], cursor)
+    load_path(config['root'], cursor)
     cursor.close()
 
 def init_db():
@@ -86,13 +85,14 @@ def init_db():
     cursor = metaDB.cursor()
     cursor.execute('''
     create table if not exists filesystem (
-        logical_path varcahr,
+        logical_path varcahr,     -- all logical path is link
         phsical_path varcahr,     -- is null if logical_path is not linked
-        category     int,         -- 0: file, 1: path, 2: link
+        category     int,         -- 0: path, 1: file, 2: link
         ctime        varchar,
         mtime        varchar,
         size         int,         -- zero for dir
-        hostip       varchar      -- where is this path
+        host_ip      varchar,
+        host_name    varchar
     )
     ''')
     
@@ -105,7 +105,7 @@ def init_db():
         cursor.execute('''
             insert into filesystem
             (logical_path, category, ctime, mtime, size)
-            values ('/', 0, ?, ?, 0)
+            values ('/', 2, ?, ?, 0)
             ''', (now, now)
         )
         metaDB.commit()
@@ -117,22 +117,48 @@ def init_db():
     cursor.close()
 
 
-def echo_ln(src, dst):
+# src is like '//137.0.0.1/local/path'
+async def echo_ln(src, dst, host_name, writer):
+    src = src.split('/', 3)
+    ip = src[2]
+    path = src[3]
+    #is_file = path.endswith('/')
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    global metaDB
+    cursor = metaDB.cursor()
+    cursor.execute('select * from filesystem where logical_path = ?', (dst,))
+    # if we're linking to an existing logical path
+    if cursor.fetchone()[0] == 0:
+        cursor.execute('insert into filesystem values (?, ?, ?, ?, ?, ?, ?, ?)',
+                        (dst, '/' + path, 2, now, now, 0, ip, host_name))
+    else:
+        cursor.execute('''
+            update into filesystem 
+            set phsical_path = ?, mtime = ?, host_ip = ?, host_name = ?
+            where logical_path = ?
+            ''', ('/' + path, now, ip, host_name, dst)
+        )
+    cursor.close()
+    metaDB.commit()
+
+    writer.write(b'E: 200 OK\n\n')
+    await writer.drain()
+
+
+async def echo_ls(dst, writer):
     pass
 
-def echo_ls(dst):
+async def echo_md(dst, writer):
     pass
 
-def echo_md(dst):
+async def echo_rm(dst, writer):
     pass
 
-def echo_rm(dst):
+async def echo_cp(src, dst, writer):
     pass
 
-async def echo_cp(src, dst):
-    pass
-
-async def echo_mv(src, dst):
+async def echo_mv(src, dst, writer):
     pass
 
 async def echo_illegal_command(writer):
@@ -181,37 +207,38 @@ async def echo_request(reader, writer):
     
 
     # handle authorized request
+    host_name = header['V'].split(' ')[1]
     cmd = header['C'].split(' ')
     if   cmd[0] == 'ln':
         if len(cmd) < 3:
             echo_illegal_command(writer)
             return
-        echo_ln(cmd[1], cmd[2])
+        echo_ln(cmd[1], cmd[2], host_name, writer)
     elif cmd[0] == 'ls':
         if len(cmd) < 2:
             echo_illegal_command(writer)
             return
-        echo_ls(cmd[1])
+        echo_ls(cmd[1], writer)
     elif cmd[0] == 'md':
         if len(cmd) < 2:
             echo_illegal_command(writer)
             return
-        echo_md(cmd[1])
+        echo_md(cmd[1], writer)
     elif cmd[0] == 'rm':
         if len(cmd) < 2:
             echo_illegal_command(writer)
             return
-        echo_rm(cmd[1])
+        echo_rm(cmd[1], writer)
     elif cmd[0] == 'cp':
         if len(cmd) < 3:
             echo_illegal_command(writer)
             return
-        echo_cp(cmd[1], cmd[2])
+        echo_cp(cmd[1], cmd[2], writer)
     elif cmd[0] == 'mv':
         if len(cmd) < 3:
             echo_illegal_command(writer)
             return
-        echo_mv(cmd[1], cmd[2])
+        echo_mv(cmd[1], cmd[2], writer)
     else:
         echo_illegal_command(writer)
         return
@@ -258,7 +285,6 @@ def make_header(cmd, length = 0):
     header += '\n'
     return header
 
-
 # get error code
 async def get_error(reader):
     error = await reader.readline()
@@ -268,10 +294,19 @@ async def get_error(reader):
         print("Error! " + err_msg[2])
         return True
 
+def local_to_physical(path):
+    global config
+    path = path.strip()
+    if path[1] == ':': # path is like 'd:/dir/f1'
+        return '//' + config['ip'] + '/' + path
+    else:              # path is like 'dir1/f2'
+        return '//' + config['ip'] + '/' + config['root'] + path
+
 
 async def cp(src, dst):
     # judge if the path is in this host
     def path_in_this_host(path):
+        # os.path.exists(path) ?
         if not path.startwith('//'): # not a physical path
             return False
         global config
@@ -304,18 +339,20 @@ async def cp(src, dst):
         data = await reader.read()
         response = json.loads(data)
 
+        writer.close()
 
 
 async def ln(src, dst):
     reader, writer = await asyncio.open_connection(
             config['tracker'], config['port'])
-    header = make_header('ln ' + src + ' ' + dst)
+    header = make_header('ln ' + local_to_physical(src) + ' ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
     
     if await get_error(reader):
         return
     print('Link successfully')
+    writer.close()
 
 
 async def ls(dst):
@@ -332,6 +369,7 @@ async def ls(dst):
     data = await reader.read()
     response = json.loads(data)
     print(response)
+    writer.close()
 
 
 async def md(dst):
@@ -344,6 +382,7 @@ async def md(dst):
     if await get_error(reader):
         return
     print('Make directory successfully')
+    writer.close()
 
 
 async def mv(src, dst):
@@ -359,6 +398,7 @@ async def rm(dst):
     if await get_error(reader):
         return
     print('Remove successfully')
+    writer.close()
 
 
 def parse_command(cmd, *args):
