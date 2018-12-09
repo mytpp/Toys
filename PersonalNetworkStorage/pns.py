@@ -38,8 +38,8 @@ def parse_config(file_name):
     with open(yaml_path, 'r', encoding='utf-8') as f:
         content = f.read()
     config = yaml.load(content)
-    this_ip = socket.gethostbyname(socket.getfqdn(socket.gethostname()))
-    config['root'] = os.path.normpath(config['root'])
+    this_ip = socket.gethostbyname(socket.gethostname())
+    #config['root'] = os.path.normpath(config['root'])
     config['ip'] = this_ip
     print('Load config successfully')
     print(config)
@@ -49,7 +49,7 @@ def parse_config(file_name):
 #---------------------------------Daemon Side----------------------------------#
 def local_to_physical(localpath):
     relative_path = localpath.split(config['root'])[1]
-    return '//' + config['name'] + '/' + relative_path[1:]
+    return '//' + config['name'] + relative_path
 
 def load_path(path_list, cursor, localhost = True):
     global config
@@ -70,23 +70,29 @@ def load_path(path_list, cursor, localhost = True):
         metaDB.commit()
         # recursive load path
         if(os.path.isdir(path)):
-            load_path([path + '\\' + subpath for subpath in os.listdir(path)], cursor)
+            load_path([path + '/' + subpath for subpath in os.listdir(path)], cursor)
         
+def update_db():
+    global config, metaDB
+    cursor = metaDB.cursor()
+    cursor.execute('delete from filesystem where hostip = ?', (config['ip'],))
+    # insert physical paths in this host
+    load_path([config['root']], cursor)
+    cursor.close()
 
 def init_db():
     global config, metaDB
-    
     metaDB = sqlite3.connect('pns.sqlite3')
     cursor = metaDB.cursor()
     cursor.execute('''
     create table if not exists filesystem (
-        logical_path varcahr(255),
-        phsical_path varcahr(255), -- is null if logical_path is not linked
-        category     int,          -- 0: file, 1: path, 2: link
-        ctime        text,
-        mtime        text,
-        size         int,          -- zero for dir
-        hostip       varchar(20)   -- where is this path
+        logical_path varcahr,
+        phsical_path varcahr,     -- is null if logical_path is not linked
+        category     int,         -- 0: file, 1: path, 2: link
+        ctime        varchar,
+        mtime        varchar,
+        size         int,         -- zero for dir
+        hostip       varchar      -- where is this path
     )
     ''')
     
@@ -98,14 +104,13 @@ def init_db():
         # insert logical root
         cursor.execute('''
             insert into filesystem
-            (logical_path, category, ctime, mtime, size, hostip)
-            values ('/', 0, ?, ?, 0, ?)
-            ''', (now, now, config['ip'])
+            (logical_path, category, ctime, mtime, size)
+            values ('/', 0, ?, ?, 0)
+            ''', (now, now)
         )
         metaDB.commit()
-        # insert physical paths in this host
-        load_path([config['root']], cursor)
-    
+
+    update_db()
     # debug
     for row in cursor.execute('select * from filesystem'):
         print(row)
@@ -131,12 +136,19 @@ async def echo_request(reader, writer):
     sha1.update(config['secret'].encode('utf-8'))
     sha1.update(header['C'].encode('utf-8'))
     if not 'A' in header or sha1.hexdigest() != header['A']: # wrong password
-        writer.write(b'401 Unauthorized\n\n')
+        writer.write(b'E: 401 Unauthorized\n\n')
         await writer.drain()
         return
     
-    # code to handle authorized request
-    # ...
+    if not 'C' in header:
+        writer.write(b'E: 200 No Command Detected\n\n')
+        await writer.drain()
+        return
+    
+    #handle authorized request
+    if header['C'] == 'ln':
+        pass
+
 
 
 async def start_daemon():
@@ -152,10 +164,14 @@ async def start_daemon():
     async with server:
         await server.serve_forever()
 
-    # close database
-    global metaDB
-    metaDB.commit()
-    metaDB.close()
+    # if this is tracker, close database
+    if not 'tracker' in config:
+        # close database
+        global metaDB
+        metaDB.commit()
+        metaDB.close()
+
+        #os.remove('pns.sqlite3')
 
 
 
@@ -179,7 +195,7 @@ def make_header(cmd, length = 0):
 # get error code
 async def get_error(reader):
     error = await reader.readline()
-    err_msg = error.decode('utf-8').split(b' ')
+    err_msg = error.decode('utf-8').split(b' ', 2)
     print(err_msg[2])
     if err_msg[1] != b'200': # error occurs
         print("Error! " + err_msg[2])
