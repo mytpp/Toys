@@ -117,11 +117,36 @@ def init_db():
     cursor.close()
 
 
+def echo_ln(src, dst):
+    pass
+
+def echo_ls(dst):
+    pass
+
+def echo_md(dst):
+    pass
+
+def echo_rm(dst):
+    pass
+
+async def echo_cp(src, dst):
+    pass
+
+async def echo_mv(src, dst):
+    pass
+
+async def echo_illegal_command(writer):
+    writer.write(b'E: 400 Illegal Command\n\n')
+    await writer.drain()
+
 async def echo_request(reader, writer):
     data = await reader.readuntil(b'\n\n')
-    header_str = data.decode('utf-8').split('\r\n')
-    header_str.pop() # remove the ending '\n'
+    header_str = data.decode('utf-8').split('\n')
+    # remove the ending '' (empty string)
+    header_str.pop()
+    header_str.pop()
     print(f"Received header:\n{header_str!r}")
+
     header = {}
     for line in header_str:
         # word_list = line.split(': ')
@@ -130,24 +155,66 @@ async def echo_request(reader, writer):
         key, value = line.split(': ')
         header[key] = value
 
+    # check required fields
+    if not 'V' in header:
+        writer.write(b'E: 400 No Version Field\n\n')
+        await writer.drain()
+        return
+    if not 'A' in header:
+        writer.write(b'E: 400 No Authorization Field\n\n')
+        await writer.drain()
+        return
+    if not 'C' in header:
+        writer.write(b'E: 400 No Command Field\n\n')
+        await writer.drain()
+        return
+
     # check authorization
     global config
     sha1 = hashlib.sha1()
     sha1.update(config['secret'].encode('utf-8'))
     sha1.update(header['C'].encode('utf-8'))
-    if not 'A' in header or sha1.hexdigest() != header['A']: # wrong password
+    if sha1.hexdigest() != header['A']: # wrong password
         writer.write(b'E: 401 Unauthorized\n\n')
         await writer.drain()
         return
     
-    if not 'C' in header:
-        writer.write(b'E: 200 No Command Detected\n\n')
-        await writer.drain()
+
+    # handle authorized request
+    cmd = header['C'].split(' ')
+    if   cmd[0] == 'ln':
+        if len(cmd) < 3:
+            echo_illegal_command(writer)
+            return
+        echo_ln(cmd[1], cmd[2])
+    elif cmd[0] == 'ls':
+        if len(cmd) < 2:
+            echo_illegal_command(writer)
+            return
+        echo_ls(cmd[1])
+    elif cmd[0] == 'md':
+        if len(cmd) < 2:
+            echo_illegal_command(writer)
+            return
+        echo_md(cmd[1])
+    elif cmd[0] == 'rm':
+        if len(cmd) < 2:
+            echo_illegal_command(writer)
+            return
+        echo_rm(cmd[1])
+    elif cmd[0] == 'cp':
+        if len(cmd) < 3:
+            echo_illegal_command(writer)
+            return
+        echo_cp(cmd[1], cmd[2])
+    elif cmd[0] == 'mv':
+        if len(cmd) < 3:
+            echo_illegal_command(writer)
+            return
+        echo_mv(cmd[1], cmd[2])
+    else:
+        echo_illegal_command(writer)
         return
-    
-    #handle authorized request
-    if header['C'] == 'ln':
-        pass
 
 
 
@@ -183,11 +250,11 @@ def make_header(cmd, length = 0):
     sha1 = hashlib.sha1()
     sha1.update(config['secret'].encode('utf-8'))
     sha1.update(cmd.encode('utf-8'))
-    header  = 'V: ' + config['name'] + ' 1.0\r\n'
-    header += 'A: ' + sha1.hexdigest() + '\r\n'
-    header += 'C: ' + cmd + '\r\n'
+    header  = 'V: ' + config['name'] + ' 1.0\n'
+    header += 'A: ' + sha1.hexdigest() + '\n'
+    header += 'C: ' + cmd + '\n'
     if length > 0:
-        header += 'L: ' + str(length) + '\r\n'
+        header += 'L: ' + str(length) + '\n'
     header += '\n'
     return header
 
