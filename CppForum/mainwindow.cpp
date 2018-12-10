@@ -29,25 +29,24 @@ void MainWindow::Initiate() {
     container = new QWidget(this);
     this->setCentralWidget(container);
 
-    infoBar = new UserInfoBar(this);qDebug()<<"0";
-
-    boardArea = new BoardsArea(this);qDebug()<<"2";
+    infoBar = new UserInfoBar(this);
+    boardArea = new BoardsArea(this);
 
     //post area
-    postArea = new PostsArea(this);  qDebug()<<"3";
+    postArea = new PostsArea(this);
     scrollArea = new QScrollArea(this);
     scrollArea->setWidget(postArea);
     scrollArea->setWidgetResizable(true);
 
     //main area
-    mainArea = new QSplitter(this);  qDebug()<<"1";
-    mainArea->addWidget(boardArea);  qDebug()<<"4";
-    mainArea->addWidget(scrollArea);   qDebug()<<"5";
+    mainArea = new QSplitter(this);
+    mainArea->addWidget(boardArea);
+    mainArea->addWidget(scrollArea);
     mainArea->setStretchFactor(0, 1);
     mainArea->setStretchFactor(1, 3);
 
     //set layout of the main window
-    vLayout = new QVBoxLayout(container); qDebug()<<"6";
+    vLayout = new QVBoxLayout(container);
     vLayout->addWidget(infoBar);
     vLayout->addWidget(mainArea);
 

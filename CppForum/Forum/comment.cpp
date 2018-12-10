@@ -10,6 +10,16 @@ Comment::Comment(const QString& author,
 
 }
 
+Comment::Comment(const QString &author,
+                 const QString &authorId,
+                 const QString &content,
+                 const QDate birthday)
+    :author(author)
+    ,authorId(authorId)
+    ,content(content)
+    ,birthday(birthday)
+{ }
+
 int Comment::CreateCommentId() {
     static int value = 10;
     return value++;

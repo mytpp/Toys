@@ -39,6 +39,8 @@ public:
     bool AssignModerator(const QString& id);
     bool DismissModerator();
 
+    bool IncPostCountOf(const QString& id);
+    bool DecPostCountOf(const QString& id);
 
     /*-----------------------Static Method------------------------*/
     static Forum& Get();
