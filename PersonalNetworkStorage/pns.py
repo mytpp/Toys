@@ -118,10 +118,13 @@ def init_db():
 
 
 # src is like '//137.0.0.1/local/path'
+# dst is a logical path, like '/dir/a/file'
 async def echo_ln(src, dst, host_name, writer):
     src = src.split('/', 3)
     ip = src[2]
     path = src[3]
+    if path[1] != ':':  # if path is not like 'c:/dir/f'
+        path = '/' + path
     #is_file = path.endswith('/')
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -131,13 +134,13 @@ async def echo_ln(src, dst, host_name, writer):
     # if we're linking to an existing logical path
     if cursor.fetchone()[0] == 0:
         cursor.execute('insert into filesystem values (?, ?, ?, ?, ?, ?, ?, ?)',
-                        (dst, '/' + path, 2, now, now, 0, ip, host_name))
+                        (dst, path, 2, now, now, 0, ip, host_name))
     else:
         cursor.execute('''
             update into filesystem 
             set phsical_path = ?, mtime = ?, host_ip = ?, host_name = ?
             where logical_path = ?
-            ''', ('/' + path, now, ip, host_name, dst)
+            ''', (path, now, ip, host_name, dst)
         )
     cursor.close()
     metaDB.commit()
@@ -145,9 +148,57 @@ async def echo_ln(src, dst, host_name, writer):
     writer.write(b'E: 200 OK\n\n')
     await writer.drain()
 
-
+# dst is a logical path, like '/dir/a/file', 
+# or a physical path, like '//137.0.0.1/local/path'
+#                      or  '//h2/local/path'
 async def echo_ls(dst, writer):
-    pass
+    global metaDB
+    cursor = metaDB.cursor()
+    file_list = []
+
+    if dst.startwith('//'): # physical path
+        dst = dst.split('/', 3)
+        location = dst[2]
+        path = dst[3]
+        if path[1] != ':':  # if path is not like 'c:/dir/f'
+            path = '/' + path
+        if location.find('.') != -1: # if location denotes an ip
+            cursor.execute('''
+                select * from filesystem 
+                where host_ip = ? and physical_path like ?
+            ''', (location, '\'path%%\''))
+        else: # if location denotes an name
+            cursor.execute('''
+                select * from filesystem 
+                where host_name = ? and physical_path like ?
+            ''', (location, '\'path%%\''))
+        for record in cursor.fetchall():
+            item = {
+                'name' : record[1],
+                'type' : 'f' if record[2] else 'd',
+                'ctime': record[3],
+                'mtime': record[4],
+                'size' : record[5],
+                'host' : record[6]  # ip
+            }
+            file_list.append(item)
+    else: # logical path
+        cursor.execute('select * from filesystem where logical_path like ?', 
+                        (dst, '\'path%%\''))
+        for record in cursor.fetchall():
+            item = {
+                'name' : record[0],
+                'type' : record[1], # the physical path for this logical path
+                'ctime': record[3],
+                'mtime': record[4],
+                'size' : record[5],
+                'host' : record[6]  # ip
+            }
+        file_list.append(item)
+    data = b'E: 200 OK\n\n' + json.dumps(file_list).encode('utf-8')
+    writer.write(data) # need to add 'L' field in header?
+    await writer.drain()
+
 
 async def echo_md(dst, writer):
     pass
@@ -265,8 +316,6 @@ async def start_daemon():
         metaDB.commit()
         metaDB.close()
 
-        #os.remove('pns.sqlite3')
-
 
 
 #------------------------------Shell Side--------------------------------#
@@ -297,10 +346,11 @@ async def get_error(reader):
 def local_to_physical(path):
     global config
     path = path.strip()
-    if path[1] == ':': # path is like 'd:/dir/f1'
-        return '//' + config['ip'] + '/' + path
-    else:              # path is like 'dir1/f2'
-        return '//' + config['ip'] + '/' + config['root'] + path
+    # if path[1] == ':': # path is like 'd:/dir/f1'
+    #     return '//' + config['ip'] + '/' + path
+    # else:              # path is like 'dir1/f2'
+    #     return '//' + config['ip'] + '/' + config['root'] + path
+    return '//' + config['ip'] + '/' + path
 
 
 async def cp(src, dst):
