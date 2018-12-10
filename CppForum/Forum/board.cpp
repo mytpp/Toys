@@ -3,6 +3,7 @@
 #include <QDate>
 #include <iterator>
 #include <algorithm>
+#include "Storage/postsstorage.h"
 
 Board::Board(const QString &name, const std::list<Post> &posts)
     :name(name)
@@ -23,15 +24,25 @@ void Board::AddInitialComment(const Comment &comment, const QString& postId) {
         p->AddInitialComment(comment);
 }
 
-Post& Board::AddPost(const QString& guid, const QString &title, const QString &content){
+Post& Board::AddPost(const QString& id, const QString &title, const QString &content){
+    //add post to db
+    auto& storage = ForumStorage::GetStorage("posts");
+    QVector<QString> record;
+    auto& userId   = User::Get()->Id();
+    auto& userName = User::Get()->Name();
+    auto  now      = QDate::currentDate();
+    record<<id<<this->Name()<<userName<<userId
+          <<title<<content<<now.toString();
+    storage<<record;
+
     User::Get()->AddPost();
     return posts.emplace_back( //need c++17 supported
-        guid,
-        User::Get()->Name(),
-        User::Get()->Id(),
+        id,
+        userName,
+        userId,
         title,
         content,
-        QDate::currentDate()
+        now
     );
 }
 
