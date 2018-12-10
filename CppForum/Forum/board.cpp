@@ -24,15 +24,21 @@ void Board::AddInitialComment(const Comment &comment, const QString& postId) {
         p->AddInitialComment(comment);
 }
 
-Post& Board::AddPost(const QString& id, const QString &title, const QString &content){
+Post& Board::AddPost(const QString &title, const QString &content){
     //add post to db
     auto& storage = ForumStorage::GetStorage("posts");
     QVector<QString> record;
+    auto&& id       = QString().setNum(storage.NextId());
     auto& userId   = User::Get()->Id();
     auto& userName = User::Get()->Name();
     auto  now      = QDate::currentDate();
-    record<<id<<this->Name()<<userName<<userId
-          <<title<<content<<now.toString();
+    record<<id
+          <<this->Name()
+          <<userName
+          <<userId
+          <<title
+          <<content
+          <<now.toString();
     storage<<record;
 
     User::Get()->AddPost();
@@ -49,8 +55,11 @@ Post& Board::AddPost(const QString& id, const QString &title, const QString &con
 bool Board::DeletePost(size_t index) {
     if(index >= posts.size())
         return false;
+    auto& storage = ForumStorage::GetStorage("posts");
     auto it = posts.begin();
     std::advance(it, index);
+    if(!storage.RemoveRecord(it->Id()))
+        return false;
     posts.erase(it);
     User::Get()->DeletePost();
     return true;

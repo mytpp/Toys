@@ -18,7 +18,7 @@ public:
 
     std::list<Post>& GetPosts()  { return posts; }
 
-    Post& AddPost(const QString& id, const QString& title, const QString& content);
+    Post& AddPost(const QString& title, const QString& content);
     bool DeletePost(size_t index);
 
     void SetModerator(const QString& id) { moderatorId = id; }

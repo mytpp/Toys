@@ -12,7 +12,6 @@ CommentsDialog::CommentsDialog(Post& post, QWidget *parent)
     :QDialog(parent),
       post(post)
 {
-qDebug()<<"in com dlg";
     this->setMinimumSize(250, 300);
     commentsArea = new QFrame();
     scrollArea = new QScrollArea(this);

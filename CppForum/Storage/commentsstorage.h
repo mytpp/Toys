@@ -10,6 +10,10 @@ public:
 
     virtual ForumStorage& operator <<(QVector<QString>& record) override;
     virtual ForumStorage& operator >>(QVector<QString>& record) override;
+    virtual int NextId() override { return nextId++; }
+
+private:
+    int nextId = 0;
 };
 
 #endif // COMMENTSSTORAGE_H

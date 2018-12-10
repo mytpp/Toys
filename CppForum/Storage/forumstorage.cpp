@@ -13,6 +13,14 @@ ForumStorage::ForumStorage()
 
 }
 
+ForumStorage::operator bool() const {
+    if (lastOpration == IN)
+        return true;
+    else if (lastOpration == OUT)
+        return dataAvailable;
+    return false;
+}
+
 bool ForumStorage::InitiateStorage() {
     if(!InitiateUserInfo()||
        !InitiateBoards()  ||

@@ -3,7 +3,9 @@
 
 CommentsStorage::CommentsStorage()
 {
-
+    query.exec("select * from comments");
+    query.last();
+    nextId = query.at() + 1;
 }
 
 ForumStorage& CommentsStorage::operator <<(QVector<QString>& record) {
@@ -29,6 +31,7 @@ ForumStorage& CommentsStorage::operator <<(QVector<QString>& record) {
         return ForumStorage::GetNullValue();
     }
 
+    lastOpration = IN;
     return *this;
 }
 
@@ -50,6 +53,7 @@ ForumStorage& CommentsStorage::operator >>(QVector<QString>& record) {
         dataAvailable = false;
     }
 
+    lastOpration = OUT;
     return *this;
 }
 

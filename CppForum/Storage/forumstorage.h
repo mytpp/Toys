@@ -21,7 +21,10 @@ public:
     virtual ForumStorage& operator <<(QVector<QString>& record) =0;
     //retrieve data from database
     virtual ForumStorage& operator >>(QVector<QString>& record) =0;
-    virtual operator bool() const { return dataAvailable; }
+    virtual operator bool() const;
+
+    virtual bool RemoveRecord(const QString& id) { return false; }
+    virtual int NextId() { return 0; }
 
 private:
     static bool InitiateUserInfo();
@@ -32,6 +35,8 @@ private:
 protected:
     QSqlQuery query;
     bool dataAvailable = false;
+    //bool inputSuccess = false;
+    enum { IN, OUT, NONE } lastOpration = NONE;
 };
 
 

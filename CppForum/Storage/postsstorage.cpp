@@ -3,7 +3,9 @@
 
 PostsStorage::PostsStorage()
 {
-
+    query.exec("select * from posts");
+    query.last();
+    nextId = query.at() + 1;
 }
 
 ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
@@ -29,6 +31,7 @@ ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
         return ForumStorage::GetNullValue();
     }
 
+    lastOpration = IN;
     return *this;
 }
 
@@ -50,5 +53,24 @@ ForumStorage& PostsStorage::operator >>(QVector<QString>& record) {
         dataAvailable = false;
     }
 
+    lastOpration = OUT;
     return *this;
+}
+
+bool PostsStorage::RemoveRecord(const QString &id) {
+    query.prepare("delete from comments where postid=?");
+    query.addBindValue(id);
+    if(!query.exec()){
+        qDebug()<<"removing comments from the deleting post failed";
+        return false;
+    }
+
+    query.prepare("delete from posts where id=?");
+    query.addBindValue(id);
+    if(!query.exec()){
+        qDebug()<<"deleting post from db failed";
+        return false;
+    }
+
+    return true;
 }

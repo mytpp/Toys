@@ -27,6 +27,7 @@ ForumStorage& UserInfoStorage::operator <<(QVector<QString>& record) {
         return ForumStorage::GetNullValue();
     }
 
+    lastOpration = IN;
     return *this;
 }
 
@@ -51,6 +52,7 @@ ForumStorage& UserInfoStorage::operator >>(QVector<QString>& record) {
         dataAvailable = false;
     }
 
+    lastOpration = OUT;
     return *this;
 }
 

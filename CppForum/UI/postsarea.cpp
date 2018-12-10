@@ -63,9 +63,7 @@ void PostsArea::OnAddPost(const QString &title, const QString &content) {
     }
 
     //add new post
-    int id = Post::CreatePostId();
-    auto guid = QString().setNum(id);
-    Post& post = Forum::Get().GetCurBoard().AddPost(guid, title, content);
+    Post& post = Forum::Get().GetCurBoard().AddPost(title, content);
     //add new post to UI
     auto* postComponent = new PostComponent(
                 post,
