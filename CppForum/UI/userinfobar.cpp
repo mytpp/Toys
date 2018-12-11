@@ -15,10 +15,6 @@ UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
 
     auto profile = User::Get()->GetProfile();
 
-//    userId = new QLabel(this);
-//    userId->setText(profile.id);
-//    userInfoLayout->addWidget(userId);
-
     userName = new QLabel(this);
     userName->setText("Hello! " + profile.name);
     userInfoLayout->addWidget(userName);
@@ -31,6 +27,7 @@ UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
     case infrastructure::ADMINISTRATOR: status = "ADMINISTRATOR"; break;
     case infrastructure::COMMON_USER: status = "COMMON USER"; break;
     case infrastructure::MODERATOR: status = "MODERATOR"; break;
+    case infrastructure::ANONYMOUS: status = "ANONYMOUS"; break;
     default: status = "UNKNOWN"; break;
     }
     userStatus->setText(status);
@@ -38,7 +35,8 @@ UserInfoBar::UserInfoBar(QWidget *parent) : QWidget(parent)
     userInfoLayout->addSpacing(25);
 
     //conditionally add post count
-    if(profile.status != infrastructure::ADMINISTRATOR) {
+    if(profile.status == infrastructure::COMMON_USER
+        || profile.status == infrastructure::MODERATOR) {
         postCount = new QLabel(this);
         postCount->setText("Posts:" + QString::number(profile.postCount) );
         userInfoLayout->addWidget(postCount);

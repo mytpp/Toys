@@ -47,7 +47,8 @@ SOURCES += \
     Storage/userinfostorage.cpp \
     Storage/postsstorage.cpp \
     Storage/commentsstorage.cpp \
-    Storage/boardsstorage.cpp
+    Storage/boardsstorage.cpp \
+    User/anonymous.cpp
 
 HEADERS += \
     mainwindow.h \
@@ -72,4 +73,5 @@ HEADERS += \
     Storage/userinfostorage.h \
     Storage/postsstorage.h \
     Storage/commentsstorage.h \
-    Storage/boardsstorage.h
+    Storage/boardsstorage.h \
+    User/anonymous.h

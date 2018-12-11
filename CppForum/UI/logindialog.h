@@ -19,6 +19,7 @@ private:
     QLineEdit *idEdit;
     QLineEdit *passwordEdit;
     QPushButton *loginButton;
+    QPushButton *anonymousLoginButton;
 };
 
 #endif // LOGINDIALOG_H

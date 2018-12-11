@@ -3,6 +3,7 @@
 #include "User/administrator.h"
 #include "User/commonuser.h"
 #include "User/moderator.h"
+#include "User/anonymous.h"
 #include <QDebug>
 
 User* User::_user = nullptr;
@@ -38,6 +39,9 @@ infrastructure::Error User::TryLogin(QString id, QString password){
             break;
         case infrastructure::MODERATOR:
             _user = new Moderator(response.postCount);
+            break;
+        case infrastructure::ANONYMOUS:
+            _user = new Anonymous();
             break;
         default:
             break;
