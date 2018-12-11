@@ -83,6 +83,8 @@ def init_db():
     global config, metaDB
     metaDB = sqlite3.connect('pns.sqlite3')
     cursor = metaDB.cursor()
+    # Both directory and file paths don't end with '/',
+    # except logical root path
     cursor.execute('''
     create table if not exists filesystem (
         logical_path varcahr,     -- all logical path is link
@@ -120,6 +122,7 @@ def init_db():
 # src is like '//137.0.0.1/local/path'
 # dst is a logical path, like '/dir/a/file'
 async def echo_ln(src, dst, host_name, writer):
+    dst.rstrip('/')
     src = src.split('/', 3)
     ip = src[2]
     path = src[3]
@@ -130,6 +133,7 @@ async def echo_ln(src, dst, host_name, writer):
 
     global metaDB
     cursor = metaDB.cursor()
+    cursor.execute('delete from filesystem where phsical_path = ?', (path,))
     cursor.execute('select * from filesystem where logical_path = ?', (dst,))
     # if we're linking to an existing logical path
     if cursor.fetchone()[0] == 0:
@@ -148,6 +152,7 @@ async def echo_ln(src, dst, host_name, writer):
     writer.write(b'E: 200 OK\n\n')
     await writer.drain()
 
+
 # dst is a logical path, like '/dir/a/file', 
 # or a physical path, like '//137.0.0.1/local/path'
 #                      or  '//h2/local/path'
@@ -155,7 +160,8 @@ async def echo_ls(dst, writer):
     global metaDB
     cursor = metaDB.cursor()
     file_list = []
-
+    
+    dst.rstrip('/')
     if dst.startwith('//'): # physical path
         dst = dst.split('/', 3)
         location = dst[2]
@@ -166,13 +172,19 @@ async def echo_ls(dst, writer):
             cursor.execute('''
                 select * from filesystem 
                 where host_ip = ? and physical_path like ?
-            ''', (location, '\'path%%\''))
+            ''', (location, 'path%%'))
         else: # if location denotes an name
             cursor.execute('''
                 select * from filesystem 
                 where host_name = ? and physical_path like ?
-            ''', (location, '\'path%%\''))
-        for record in cursor.fetchall():
+            ''', (location, 'path%%'))
+            
+        results = cursor.fetchall()
+        if len(results) == 0:
+            writer.write(b'E: 404 Path Not Found\n\n')
+            await writer.drain()
+            return
+        for record in results:
             item = {
                 'name' : record[1],
                 'type' : 'f' if record[2] else 'd',
@@ -184,8 +196,13 @@ async def echo_ls(dst, writer):
             file_list.append(item)
     else: # logical path
         cursor.execute('select * from filesystem where logical_path like ?', 
-                        (dst, '\'path%%\''))
-        for record in cursor.fetchall():
+                        (dst, 'path%%'))
+        results = cursor.fetchall()
+        if len(results) == 0:
+            writer.write(b'E: 404 Path Not Found\n\n')
+            await writer.drain()
+            return
+        for record in results:
             item = {
                 'name' : record[0],
                 'type' : record[1], # the physical path for this logical path
@@ -195,16 +212,57 @@ async def echo_ls(dst, writer):
                 'host' : record[6]  # ip
             }
         file_list.append(item)
+    cursor.close()
+    metaDB.commit()
     data = b'E: 200 OK\n\n' + json.dumps(file_list).encode('utf-8')
     writer.write(data) # need to add 'L' field in header?
     await writer.drain()
 
 
+# dst is logical path, like '/logical/path'
 async def echo_md(dst, writer):
-    pass
+    global metaDB
+    cursor = metaDB.cursor()
 
+    dst.rstrip('/')
+    cursor.execute('select count(*) from filesystem where logical_path = ?', 
+                    (dst,))
+    if cursor.fetchone()[0] == 0: 
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute('''
+            insert into filesystem
+            (logical_path, category, ctime, mtime, size)
+            values (?, 2, ?, ?, 0)
+            ''', (dst, now, now)
+        )
+        metaDB.commit()
+        writer.write(b'E: 200 OK\n\n')
+        await writer.drain()
+    else: # error
+        writer.write(b'E: 403 Path Already Exists\n\n')
+        await writer.drain()
+    cursor.close()
+
+
+# dst is logical path, like '/logical/path'
 async def echo_rm(dst, writer):
-    pass
+    global metaDB
+    cursor = metaDB.cursor()
+
+    dst.rstrip('/')
+    cursor.execute('select physical_path from filesystem where logical_path = ?',
+                    (dst,))
+    if cursor.fetchone()[0] == None:
+        cursor.execute('delete from filesystem where logical_path = ?', (dst,))
+    else:
+        cursor.execute('''
+            update into filesystem
+            set logical_path = null
+            where logical_path = ?
+        ''', (dst,))
+    writer.write(b'E: 200 OK\n\n')
+    await writer.drain()
+
 
 async def echo_cp(src, dst, writer):
     pass
