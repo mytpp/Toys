@@ -1,6 +1,6 @@
 #tracker
 
-name: h2
+name: h1
 port: 60000
-root: d:/pns/
+root: d:/pns/h1/
 secret: passW0RD
