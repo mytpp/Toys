@@ -23,6 +23,10 @@ public:
     virtual ForumStorage& operator >>(QVector<QString>& record) =0;
     virtual operator bool() const;
 
+    //update the #index field of record whose primary key is 'id'
+    virtual bool UpdateRecord(const QString& id, int index, const QString& newVal) {
+        return false;
+    }
     virtual bool RemoveRecord(const QString& id) { return false; }
     virtual int NextId() { return 0; }
 

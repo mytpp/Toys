@@ -14,7 +14,7 @@ ForumStorage& UserInfoStorage::operator <<(QVector<QString>& record) {
 
     query.prepare("insert into userinfo values (?,?,?,?,?)");
     query.addBindValue(record[0]);
-    query.addBindValue(record[1]);
+    query.addBindValue(record[1].toInt());
     query.addBindValue(record[2].toInt());
     query.addBindValue(record[3]);
     query.addBindValue(record[4]);
@@ -54,5 +54,40 @@ ForumStorage& UserInfoStorage::operator >>(QVector<QString>& record) {
 
     lastOpration = OUT;
     return *this;
+}
+
+bool UserInfoStorage::UpdateRecord(
+        const QString &id, int index, const QString &newVal) {
+    switch (index) {
+    case 1: query.prepare("update userinfo set status = ? where id = ?");
+        break;
+    case 2: query.prepare("update userinfo set postCount = ? where id = ?");
+        break;
+    case 3: query.prepare("update userinfo set name = ? where id = ?");
+        break;
+    case 4: query.prepare("update userinfo set password = ? where id = ?");
+        break;
+    default:
+        break;
+    }
+    query.bindValue(0, newVal);
+    query.bindValue(1, id);
+    if(!query.exec()){
+        qDebug()<<"update userinfo where id="<<id<<"failed";
+        return false;
+    }
+    qDebug()<<"update userinfo storage successfully";
+    return true;
+}
+
+bool UserInfoStorage::RemoveRecord(const QString &id) {
+    query.prepare("delete from userinfo where id=?");
+    query.addBindValue(id);
+    if(!query.exec()){
+        qDebug()<<"delete from userinfo where id="<<id<<"failed";
+        return false;
+    }
+    qDebug()<<"delete from userinfo successfully";
+    return true;
 }
 

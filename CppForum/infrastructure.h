@@ -7,10 +7,10 @@ namespace infrastructure {
 
     enum Status: uint8_t
     {
-        COMMON_USER,
-        ADMINISTRATOR,
-        MODERATOR,
-        ANONYMOUS
+        ADMINISTRATOR = 0,
+        COMMON_USER = 1,
+        MODERATOR = 2,
+        ANONYMOUS = 3
     };
 
     enum Error: uint8_t

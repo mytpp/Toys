@@ -64,6 +64,15 @@ bool Forum::AssignModerator(const QString& id) {
     if(it == users.end() ||
        it->second.status == infrastructure::ADMINISTRATOR)
         return false;
+
+    //update userinfo storage
+    auto& userStorage = ForumStorage::GetStorage("userinfo");
+    if(!userStorage.UpdateRecord(id, 1, QString().setNum(2)))
+        return false;
+    auto& boardStorage = ForumStorage::GetStorage("boards");
+    if(!boardStorage.UpdateRecord(GetCurBoard().Name(), 1, id))
+        return false;
+
     it->second.status = infrastructure::MODERATOR;
     curBoard->SetModerator(id);
     return true;
@@ -73,10 +82,18 @@ bool Forum::DismissModerator() {
     auto id = curBoard->ModeratorId();
     if(id.isEmpty())
         return false;
-
     auto it = users.find(id);
     if(it == users.end()) //necessary?
         return false;
+
+    //update userinfo storage
+    auto& userStorage = ForumStorage::GetStorage("userinfo");
+    if(!userStorage.UpdateRecord(id, 1, QString().setNum(1)))
+        return false;
+    auto& boardStorage = ForumStorage::GetStorage("boards");
+    if(!boardStorage.UpdateRecord(GetCurBoard().Name(), 1, ""))
+        return false;
+
     it->second.status = infrastructure::COMMON_USER;
     curBoard->SetModerator(tr("")); //empty str means no moderator
     return true;
@@ -198,15 +215,7 @@ void Forum::SetExistUsers(){
     QVector<QString> record;
     while (storage>>record) {
         QString id = record[0];
-        infrastructure::Status status;
-        if (record[1] == "ADMINISTRATOR")
-            status =infrastructure::ADMINISTRATOR;
-        else if (record[1] == "MODERATOR")
-            status = infrastructure::MODERATOR;
-        else if (record[1] == "COMMON_USER")
-            status = infrastructure::COMMON_USER;
-        else
-            status = infrastructure::ANONYMOUS;
+        auto status = static_cast<infrastructure::Status>(record[1].toInt());
         uint16_t postCount = record[2].toInt();
         QString  name      = record[3];
         QString  password  = record[4];

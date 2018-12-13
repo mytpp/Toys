@@ -10,6 +10,10 @@ public:
 
     virtual ForumStorage& operator <<(QVector<QString>& record) override;
     virtual ForumStorage& operator >>(QVector<QString>& record) override;
+
+    virtual bool UpdateRecord(const QString& id,
+                              int index, const QString &newVal) override;
+
 };
 
 #endif // BOARDSSTORAGE_H

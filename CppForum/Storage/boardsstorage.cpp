@@ -48,3 +48,21 @@ ForumStorage& BoardsStorage::operator >>(QVector<QString>& record) {
     return *this;
 }
 
+bool BoardsStorage::UpdateRecord(
+        const QString &id, int index, const QString &newVal) {
+    switch (index) {
+    case 1: query.prepare("update boards set moderator = ? where name = ?");
+        break;
+    default:
+        break;
+    }
+    query.bindValue(0, newVal.isEmpty() ? QVariant() : newVal);
+    query.bindValue(1, id);
+    if(!query.exec()){
+        qDebug()<<"update boards where name="<<id<<"failed";
+        return false;
+    }
+    qDebug()<<"update boards storage successfully";
+    return true;
+}
+

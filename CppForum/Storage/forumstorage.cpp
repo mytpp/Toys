@@ -38,7 +38,7 @@ qDebug()<<"here";
     bool success = query.exec(
                "create table if not exists userinfo ("
                "id         varchar primary key,"
-               "status     varchar,"
+               "status     int,"
                "postsCount int,"
                "name       varchar,"
                "password   varchar)"
@@ -53,46 +53,50 @@ qDebug()<<"here";
     //insert six users totally
     query.prepare("insert into userinfo values (?,?,?,?,?)");
 
+    query.bindValue(0, "anonymous");
+    query.bindValue(1, 3);
+    query.bindValue(2, 0);
+    query.bindValue(3, "anonymous");
+    query.bindValue(4, "anonymous");
+    query.exec();
+
     query.bindValue(0, "000");
-    query.bindValue(1, "ADMINISTRATOR");
+    query.bindValue(1, 0);
     query.bindValue(2, 0);
     query.bindValue(3, "a_admin");
     query.bindValue(4, "000");
     query.exec(); //if there is already a existing one, it returns false
-//    if(!query.exec()){
-//        qDebug()<<"insert failed";
-//    }
 
     query.bindValue(0, "111");
-    query.bindValue(1, "MODERATOR");
+    query.bindValue(1, 2);
     query.bindValue(2, 2);
     query.bindValue(3, "a_user");
     query.bindValue(4, "111");
     query.exec();
 
     query.bindValue(0, "222");
-    query.bindValue(1, "COMMON_USER");
+    query.bindValue(1, 1);
     query.bindValue(2, 1);
     query.bindValue(3, "b_user");
     query.bindValue(4, "222");
     query.exec();
 
     query.bindValue(0, "333");
-    query.bindValue(1, "COMMON_USER");
+    query.bindValue(1, 1);
     query.bindValue(2, 1);
     query.bindValue(3, "c_user");
     query.bindValue(4, "333");
     query.exec();
 
     query.bindValue(0, "444");
-    query.bindValue(1, "COMMON_USER");
+    query.bindValue(1, 1);
     query.bindValue(2, 1);
     query.bindValue(3, "d_user");
     query.bindValue(4, "444");
     query.exec();
 
     query.bindValue(0, "555");
-    query.bindValue(1, "ADMINISTRATOR");
+    query.bindValue(1, 0);
     query.bindValue(2, 0);
     query.bindValue(3, "b_admin");
     query.bindValue(4, "555");
