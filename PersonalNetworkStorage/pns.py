@@ -8,6 +8,7 @@ __author__ = 'mytpp'
 
 import sys
 import os
+import shutil
 import argparse
 import yaml
 import json
@@ -50,8 +51,63 @@ def parse_config(file_name):
     logging.info('Load config successfully')
     # print(config)
 
+def parse_header(header_str):
+    header_str = header_str.strip()
+    fields = header_str.split('\n')
+    print(f"Received header:\n{fields!r}")
+    header = {}
+    for line in fields:
+        # word_list = line.split(': ')
+        # if word_list < 2
+        #    continue
+        key, value = line.split(': ')
+        header[key] = value
+    return header
 
+# construct a request header
+def make_header(cmd, length = 0):
+    global config
+    sha1 = hashlib.sha1()
+    sha1.update(config['secret'].encode('utf-8'))
+    sha1.update(cmd.encode('utf-8'))
+    header  = 'V: ' + config['name'] + ' ' + config['port'] + '\n'
+    header += 'A: ' + sha1.hexdigest() + '\n'
+    header += 'C: ' + cmd + '\n'
+    if length > 0:
+        header += 'L: ' + str(length) + '\n'
+    header += '\n'
+    return header
+
+# get error code
+async def get_error(reader, writer):
+    error = await reader.readuntil(b'\n\n') # 'error' is like b'E: 200 OK'
+    err_msg = error.decode('utf-8').strip() 
+    logging.info(err_msg)
+    if err_msg.split(' ', 2)[1] != '200': # error occurs
+        writer.close()
+        return True
+
+async def send_file(src, dst, writer, loop):
+    logging.info('Start sending file...')
+    size = os.path.getsize(src)
+    with open(src, 'rb') as f:
+        tr = writer.transport
+        # 'size' and 'dst' is the reason why we need this header
+        header = make_header('cp ' + src + ' ' + dst, size)
+        print(f'Send: {header!r}')
+        writer.write(header.encode('utf-8'))
+        await writer.drain()
+        # send file
+        await loop.sendfile(tr, f) 
+        writer.write_eof()
+        await writer.drain()
+    logging.info('Finish sending file.')
+
+
+################################################################################
 #---------------------------------Daemon Side----------------------------------#
+
+#----------------------------Database Initiliztion-----------------------------#
 def root_to_physical(localpath):
     return localpath.split(config['root'])[1]
 
@@ -127,15 +183,26 @@ def init_db():
     cursor.close()
 
 
+#------------------------------Callback & Utilities---------------------------#
+
+# break physical_path into name/ip and relative path
+# Judge whether location denote a name or ip by whether it contains '.'
+# Judge whether relative path is in root by whether it starts with '/'
+def parse_physical_path(physical_path):
+    physical_path = physical_path.split('/', 3)
+    location = physical_path[2]
+    path = '/'
+    if len(physical_path) > 3:
+        path = physical_path[3]
+        if path.find(':') == -1:  # if path is not like 'c:/dir/f'
+            path = '/' + path
+    return location, path
+
 # src is like '//137.0.0.1/local/path'
 # dst is a logical path, like '/dir/a/file'
 async def echo_ln(src, dst, host_name, writer):
     dst.rstrip('/')
-    src = src.split('/', 3)
-    addr = src[2]
-    path = src[3]
-    if path[1] != ':':  # if path is not like 'c:/dir/f'
-        path = '/' + path
+    addr, path = parse_physical_path(src)
     #is_file = path.endswith('/')
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -171,20 +238,18 @@ async def echo_ls(dst, writer):
     
     dst.rstrip('/')
     if dst.startswith('//'): # physical path
-        dst = dst.split('/', 3)
-        location = dst[2]
-        path = '' if len(dst) <= 3 else dst[3]
-        if len(path) < 1 or path[1] != ':':  # if path is not like 'c:/dir/f'
-            path = '/' + path
+        location, path = parse_physical_path(dst)
         if location.find('.') != -1: # if location denotes an ip
             cursor.execute('''
                 select * from filesystem 
                 where host_addr like ? and physical_path like ?
+                order by physical_path asc
             ''', (location + '%%', path + '%%'))
         else: # if location denotes an name
             cursor.execute('''
                 select * from filesystem 
                 where host_name = ? and physical_path like ?
+                order by physical_path asc
             ''', (location, path + '%%'))
             
         results = cursor.fetchall()
@@ -203,7 +268,8 @@ async def echo_ls(dst, writer):
             }
             file_list.append(item)
     else: # logical path
-        cursor.execute('select * from filesystem where logical_path like ?', 
+        cursor.execute('''select * from filesystem where logical_path like ?
+                            order by logical_path asc''', 
                         (dst + '%%', ))
         results = cursor.fetchall()
         if len(results) == 0:
@@ -274,11 +340,51 @@ async def echo_rm(dst, writer):
     await writer.drain()
 
 
-async def echo_cp(src, dst, writer):
-    pass
+# src and dst should both be physical path like '//127.0.0.1/path
+# Either src or dst must be this host,
+# which determine whether this host sends or receives a file
+# support only single file transfer
+async def echo_cp(src, dst, reader, writer, size = 0):
+    src_ip, src_path = parse_physical_path(src)
+    dst_ip, dst_path = parse_physical_path(dst)
+    
+    if src_ip == config['ip']: # this is sending side
+        if src_path.find(':') == -1:  # the file may be in root directory
+            src_path = config['root'] + src_path
+        if os.path.isfile(src_path):  # also return false if path doesn't exist
+            loop = asyncio.get_running_loop()
+            # 'dst_path' is not important here, as we send file through 'tr'
+            await send_file(src_path, dst_path, writer, loop)
+            if await get_error(reader, writer):
+                return
+            print('Send file successfully!')
+        else:
+            writer.write(b'E: 404 File Not Found')
+            await writer.drain()
+
+    elif dst_ip == config['ip']: # this is receiving side
+        # allow only copying to root directory
+        dst_path = config['root'] + dst_path
+        if not os.path.exists(dst_path):  # if we are not covering a existing file
+             with open(dst_path, 'wb') as f:
+                if size > 0:
+                    while size >= 4096:
+                        f.write(await reader.read(4096))
+                        size -= 4096
+                    f.write(await reader.read(size))
+                    writer.write(b'E: 200 OK\n\n')
+                    await writer.drain()
+                else:
+                    writer.write(b'E: 400 No Length Field\n\n')
+                    await writer.drain()
+        else: 
+            writer.write(b'E: 406 File Already Exists\n\n')
+            await writer.drain()
+
 
 async def echo_mv(src, dst, writer):
     pass
+
 
 async def echo_illegal_command(writer):
     logging.info('Reciive illegal command')
@@ -287,19 +393,7 @@ async def echo_illegal_command(writer):
 
 async def echo_request(reader, writer):
     data = await reader.readuntil(b'\n\n')
-    header_str = data.decode('utf-8').split('\n')
-    # remove the ending '' (empty string)
-    header_str.pop()
-    header_str.pop()
-    print(f"Received header:\n{header_str!r}")
-
-    header = {}
-    for line in header_str:
-        # word_list = line.split(': ')
-        # if word_list < 2
-        #    continue
-        key, value = line.split(': ')
-        header[key] = value
+    header = parse_header(data.decode('utf-8'))
 
     # check required fields
     if not 'V' in header:
@@ -353,7 +447,10 @@ async def echo_request(reader, writer):
         if len(cmd) < 3:
             await echo_illegal_command(writer)
             return
-        await echo_cp(cmd[1], cmd[2], writer)
+        if 'L' in header:
+            await echo_cp(cmd[1], cmd[2], reader, writer, int(header['L']))
+        else:
+            await echo_cp(cmd[1], cmd[2], reader, writer)
     elif cmd[0] == 'mv':
         if len(cmd) < 3:
             await echo_illegal_command(writer)
@@ -363,7 +460,8 @@ async def echo_request(reader, writer):
         await echo_illegal_command(writer)
         return
 
-    logging.info('Echo client successfully')
+    logging.info('Finish Echoing client.')
+    logging.info('Continue serving...')
 
 
 
@@ -388,75 +486,33 @@ async def start_daemon():
         metaDB.close()
 
 
-
-#------------------------------Shell Side--------------------------------#
-
-# construct a request header
-def make_header(cmd, length = 0):
-    global config
-    sha1 = hashlib.sha1()
-    sha1.update(config['secret'].encode('utf-8'))
-    sha1.update(cmd.encode('utf-8'))
-    header  = 'V: ' + config['name'] + ' ' + config['port'] + '\n'
-    header += 'A: ' + sha1.hexdigest() + '\n'
-    header += 'C: ' + cmd + '\n'
-    if length > 0:
-        header += 'L: ' + str(length) + '\n'
-    header += '\n'
-    return header
-
-# get error code
-async def get_error(reader, writer):
-    error = await reader.readuntil(b'\n\n')
-    err_msg = error.decode('utf-8').strip()
-    logging.info(err_msg)
-    if err_msg.split(' ', 2)[1] != '200': # error occurs
-        writer.close()
-        return True
+##############################################################################
+#------------------------------Shell Side------------------------------------#
 
 def local_to_physical(path):
     global config
     path = path.strip()
     return '//' + config['ip'] + '/' + path
 
-
-async def cp(src, dst):
-    # judge if the path is in this host
-    def path_in_this_host(path):
-        # os.path.exists(path) ?
-        if not path.startwith('//'): # not a physical path
-            return False
-        global config
-        location = path.split('/', 3)[2]
-        if config['ip'] == location or config['name'] == location:
-            return True
+# judge if the path is in this host
+def path_in_this_host(path):
+    # os.path.exists(path) ?
+    if path[0] != '/': # path is something like 'd:/pns/root/file'
+        return True
+    if path[2] != '/': # path is a logical path
         return False
+    global config
+    location = path.split('/', 3)[2]
+    if config['ip'] == location or config['name'] == location:
+        return True
+    return False
 
-    src_is_here = path_in_this_host(src)
-    dst_is_here = path_in_this_host(dst)
-    if src_is_here and dst_is_here:
-        # use local filesystem
-        pass
-    elif not src_is_here and not dst_is_here:
-        print("Either src or dst should be in this host!")
-    else:
-        reader, writer = await asyncio.open_connection(
-            config['tracker_ip'], config['tracker_port'])
-        if src_is_here:
-            header = make_header('ls ' + dst)
-        else:
-            header = make_header('ls ' + src)
-        print(f'Send: {header!r}')
-        writer.write(header.encode('utf-8'))
-        
-        if await get_error(reader, writer):
-            return
-        
-        # get json data
-        data = await reader.read()
-        response = json.loads(data)
-        print(response)
-        writer.close()
+def extract_local_path_from(path):
+    if path[0] != '/': # path is something like 'd:/pns/root/file'
+        return path
+    global config      # path is something like '//nameOrIp/pns/root/file'
+    relative_path = path.split('/', 3)[3] # not check if path.split('/', 3) has index 3
+    return config['root'] + '/' + relative_path
 
 
 async def ln(src, dst):
@@ -465,6 +521,7 @@ async def ln(src, dst):
     header = make_header('ln ' + local_to_physical(src) + ' ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
+    await writer.drain()
     
     if await get_error(reader, writer):
         return
@@ -478,6 +535,7 @@ async def ls(dst):
     header = make_header('ls ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
+    await writer.drain()
 
     if await get_error(reader, writer):
         return
@@ -495,6 +553,7 @@ async def md(dst):
     header = make_header('md ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
+    await writer.drain()
     
     if await get_error(reader, writer):
         return
@@ -502,20 +561,125 @@ async def md(dst):
     writer.close()
 
 
-async def mv(src, dst):
-    pass
-
 async def rm(dst):
     reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
     header = make_header('md ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
+    await writer.drain()
     
     if await get_error(reader, writer):
         return
     print('Remove successfully')
     writer.close()
+
+
+# At least one of 'src' and 'dst' should be in this host.
+# The one which is in other host is something like '//hostname/path' or '/logical/path'
+async def cp(src, dst):
+    src_is_here = path_in_this_host(src)
+    dst_is_here = path_in_this_host(dst)
+    if not src_is_here and not dst_is_here:
+        print("Either src or dst should be in this host!")
+    elif src_is_here and dst_is_here: 
+        # use local filesystem
+        src_path = extract_local_path_from(src)
+        if os.path.exists(src_path):
+            print('src doesn\'t exist!')
+            return
+        dst_path = extract_local_path_from(dst)
+        shutil.copyfile(src_path, dst_path)
+
+    elif src_is_here: # this is sending side
+        src_path = extract_local_path_from(src)
+        if os.path.exists(src_path):
+            print('src doesn\'t exist!')
+            return
+        
+        # try to get dst ip and port
+        reader, writer = await asyncio.open_connection(
+            config['tracker_ip'], config['tracker_port'])
+        header = make_header('ls ' + dst)
+        print(f'Send: {header!r}')
+        writer.write(header.encode('utf-8'))
+        await writer.drain()
+        if await get_error(reader, writer):
+            return
+        # get response
+        data = await reader.read()
+        response = json.loads(data)
+        dst_sock = response[0]['host'].split(':')
+        relative_path = response[0]['type']
+        writer.close()
+
+        # send file to dst
+        reader, writer = await asyncio.open_connection(dst_sock[0], dst_sock[1])
+        loop = asyncio.get_running_loop()
+        dst_path = '//' + dst_sock[0] + '/' + relative_path
+        await send_file(src_path, dst_path, writer, loop)
+        if await get_error(reader, writer):
+            return
+        print('Send file successfully!')
+
+    else: # dst_is_here
+        dst_path = extract_local_path_from(dst)
+        if os.path.exists(dst_path):
+            print('dst doesn\'t exist!')
+            return
+        
+        # try to get src ip and port
+        reader, writer = await asyncio.open_connection(
+            config['tracker_ip'], config['tracker_port'])
+        header = make_header('ls ' + src)
+        print(f'Send: {header!r}')
+        writer.write(header.encode('utf-8'))
+        await writer.drain()
+        if await get_error(reader, writer):
+            return
+        # get response
+        data = await reader.read()
+        response = json.loads(data)
+        src_sock = response[0]['host'].split(':')
+        relative_path = response[0]['type']
+        writer.close()
+
+        # send a header to let src host start sending file
+        reader, writer = await asyncio.open_connection(src_sock[0], src_sock[1])
+        loop = asyncio.get_running_loop()
+        src_path = '//' + src_sock[0] + '/' + relative_path
+        header = make_header('cp ' + src_path + ' ' + dst_path)
+        print(f'Send: {header!r}')
+        writer.write(header.encode('utf-8'))
+        await writer.drain()
+
+        # receive file from src
+        rec_header = await reader.readuntil(b'\n\n')
+        header = parse_header(rec_header.decode('utf-8'))
+        if 'E' in header and header['E'].split(' ', 1)[0] != '200':
+            logging.info(header['E'])
+            writer.close()
+            return
+        if not 'L' in header:
+            logging.info('No length field detcted.')
+            writer.close()
+            return
+        size = int(header['L'])
+        if size < 0:
+            logging.info('Illegal length field.')
+            writer.close()
+            return
+        with open(dst_path, 'wb') as f:
+            while size >= 4096:
+                f.write(await reader.read(4096))
+                size -= 4096
+            f.write(await reader.read(size))
+            writer.write(b'E: 200 OK\n\n')
+            await writer.drain()
+
+
+async def mv(src, dst):
+    pass
 
 
 def do_command(cmd, *args):
@@ -533,6 +697,9 @@ def do_command(cmd, *args):
         asyncio.run(mv(*args))
     else:
         print('Unknown Command')
+
+
+#-----------------------------------Command Parser------------------------------------#
 
 def main():
     parser = argparse.ArgumentParser(description='Personal Network Storage')
