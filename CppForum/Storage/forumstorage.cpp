@@ -282,22 +282,18 @@ ForumStorage& ForumStorage::GetNullValue() {
     return null;
 }
 
-ForumStorage& ForumStorage::GetStorage(const QString &category) {
+ForumStorage& ForumStorage::GetStorage(const Category category) {
     static UserInfoStorage userInfoStorage;
     static BoardsStorage   boardsStorage;
     static PostsStorage    postsStorage;
     static CommentsStorage commentsStorage;
 
-
-    if(category == "userinfo") {
-        return userInfoStorage;
-    } else if (category == "boards") {
-        return boardsStorage;
-    } else if (category == "posts") {
-        return postsStorage;
-    } else if (category == "comments") {
-        return commentsStorage;
-    } else {
+    switch (category) {
+    case USERINFO: return userInfoStorage;
+    case BOARDS  : return boardsStorage;
+    case POSTS   : return postsStorage;
+    case COMMENTS: return commentsStorage;
+    default:
         qDebug()<<"Storage Not Found";
         return GetNullValue();
     }

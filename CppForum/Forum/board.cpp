@@ -5,30 +5,24 @@
 #include <algorithm>
 #include "Storage/postsstorage.h"
 
-Board::Board(const QString &name, const std::list<Post> &posts)
-    :name(name)
-    ,posts(posts)
-{ }
 
-Board::Board(const QString &name, const QString &moderatorId,
-             const std::list<Post>& posts)
+Board::Board(const QString &name, const QString &moderatorId)
     :name(name)
     ,moderatorId(moderatorId)
-    ,posts(posts)
 { }
 
 void Board::AddInitialComment(const Comment &comment, const QString& postId) {
-    auto p = std::find_if(posts.begin(), posts.end(),
-                          [&postId](auto& post) {return postId == post.Id();});
-    if(p != posts.end())
-        p->AddInitialComment(comment);
+    auto it = posts.find(postId);
+    if(it == posts.end())
+        return;
+    it->second.AddInitialComment(comment);
 }
 
 Post& Board::AddPost(const QString &title, const QString &content){
     //add post to db
-    auto& storage = ForumStorage::GetStorage("posts");
+    auto& storage = ForumStorage::GetStorage(ForumStorage::POSTS);
     QVector<QString> record;
-    auto&& id      = QString().setNum(storage.NextId());
+    const auto& id = QString().setNum(storage.NextId());
     auto& userId   = User::Get()->Id();
     auto& userName = User::Get()->Name();
     auto  now      = QDate::currentDate();
@@ -42,23 +36,24 @@ Post& Board::AddPost(const QString &title, const QString &content){
     storage<<record;
 
     User::Get()->AddPost();
-    return posts.emplace_back( //need c++17 supported
-        id,
-        userName,
-        userId,
-        title,
-        content,
-        now
-    );
+    auto retVal = posts.emplace(id, Post{
+                    id,
+                    userName,
+                    userId,
+                    title,
+                    content,
+                    now
+                }
+            );
+    return retVal.first->second;
 }
 
-bool Board::DeletePost(size_t index) {
-    if(index >= posts.size())
+bool Board::DeletePost(const QString id) {
+    auto it = posts.find(id);
+    if(it == posts.end())
         return false;
-    auto& storage = ForumStorage::GetStorage("posts");
-    auto it = posts.begin();
-    std::advance(it, index);
-    if(!storage.RemoveRecord(it->Id()))
+    auto& storage = ForumStorage::GetStorage(ForumStorage::POSTS);
+    if(!storage.RemoveRecord(it->second.Id()))
         return false;
     posts.erase(it);
     User::Get()->DeletePost();

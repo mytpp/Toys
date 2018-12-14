@@ -20,11 +20,14 @@ public:
     void DecIndex() { --index; }
     //void IncIndex() { ++index; }
 
+    const QString& Id() const { return id; }
+
 signals:
     void DeletePostAtIndex(int index);
 
 private:
     int index;  //the offset of this component at PostArea
+    const QString id;
     QLabel *title = nullptr;
     QTextBrowser *content = nullptr;
     int commentsCount;

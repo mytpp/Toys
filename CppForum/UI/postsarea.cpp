@@ -2,7 +2,6 @@
 #include "UI/postcomponent.h"
 #include "UI/postedit.h"
 #include "Forum/forum.h"
-#include <algorithm>
 #include <QMessageBox>
 #include "Forum/post.h"
 #include "User/user.h"
@@ -20,13 +19,11 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
 
     int index = 0;
     //add Posts to this area
-    std::for_each(posts.begin(), posts.end(),
-        [postsLayout = postsLayout, &postComponents = postComponents, &index, this]
-        (Post& post){
-        auto* postComponent = new PostComponent(post, index++, this);
+    for(auto& postIt: posts) {
+        auto* postComponent = new PostComponent(postIt.second, index++, this);
         postComponents.append(postComponent);
         postsLayout->addWidget(postComponent);
-    });
+    }
 
     //check whether the new post area can be shown
     auto status = User::Get()->GetProfile().status;
@@ -40,8 +37,6 @@ PostsArea::PostsArea(QWidget *parent) : QWidget(parent)
 void PostsArea::OnDeletePost(int index) {
     delete postComponents[index];
     postComponents.removeAt(index);
-    qDebug()<<index;
-    qDebug()<<postComponents.size();
     for(int i=index; i<postComponents.size(); ++i)
         postComponents[i]->DecIndex();
     ui::mainWindow->RefreshUserInfoBar();

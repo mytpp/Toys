@@ -10,11 +10,20 @@ class NullStorage;
 class ForumStorage
 {
 public:
+    enum Category
+    {
+        USERINFO,
+        BOARDS,
+        POSTS,
+        COMMENTS
+    };
+
+public:
     ForumStorage();
     virtual ~ForumStorage() { }
 
     static bool InitiateStorage();
-    static ForumStorage& GetStorage(const QString& category);
+    static ForumStorage& GetStorage(const Category category);
     static ForumStorage& GetNullValue();
 
     //put data to database

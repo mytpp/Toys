@@ -66,10 +66,11 @@ bool Forum::AssignModerator(const QString& id) {
         return false;
 
     //update userinfo storage
-    auto& userStorage = ForumStorage::GetStorage("userinfo");
+    auto& userStorage = ForumStorage::GetStorage(ForumStorage::USERINFO);
     if(!userStorage.UpdateRecord(id, 1, QString().setNum(2)))
         return false;
-    auto& boardStorage = ForumStorage::GetStorage("boards");
+    //update boards storage
+    auto& boardStorage = ForumStorage::GetStorage(ForumStorage::BOARDS);
     if(!boardStorage.UpdateRecord(GetCurBoard().Name(), 1, id))
         return false;
 
@@ -87,10 +88,10 @@ bool Forum::DismissModerator() {
         return false;
 
     //update userinfo storage
-    auto& userStorage = ForumStorage::GetStorage("userinfo");
+    auto& userStorage = ForumStorage::GetStorage(ForumStorage::USERINFO);
     if(!userStorage.UpdateRecord(id, 1, QString().setNum(1)))
         return false;
-    auto& boardStorage = ForumStorage::GetStorage("boards");
+    auto& boardStorage = ForumStorage::GetStorage(ForumStorage::BOARDS);
     if(!boardStorage.UpdateRecord(GetCurBoard().Name(), 1, ""))
         return false;
 
@@ -149,7 +150,7 @@ QString Forum::SelectNameWhereIdEqualTo(QString id) {
 }
 
 bool Forum::SetBoards() {
-    ForumStorage& storage = ForumStorage::GetStorage("boards");
+    ForumStorage& storage = ForumStorage::GetStorage(ForumStorage::BOARDS);
     QVector<QString> record;
     while (storage>>record) {
         //QString name      = record[0];
@@ -161,7 +162,7 @@ bool Forum::SetBoards() {
 }
 
 bool Forum::SetPosts() {
-    ForumStorage& storage = ForumStorage::GetStorage("posts");
+    ForumStorage& storage = ForumStorage::GetStorage(ForumStorage::POSTS);
     QVector<QString> record;
     while (storage>>record) {
 //        QString id       = record[0];
@@ -187,7 +188,7 @@ bool Forum::SetPosts() {
 }
 
 bool Forum::SetComments() {
-    ForumStorage& storage = ForumStorage::GetStorage("comments");
+    ForumStorage& storage = ForumStorage::GetStorage(ForumStorage::COMMENTS);
     QVector<QString> record;
     while (storage>>record) {
 //        QString id       = record[0];
@@ -211,7 +212,7 @@ bool Forum::SetComments() {
 }
 
 void Forum::SetExistUsers(){
-    ForumStorage& storage = ForumStorage::GetStorage("userinfo");
+    ForumStorage& storage = ForumStorage::GetStorage(ForumStorage::USERINFO);
     QVector<QString> record;
     while (storage>>record) {
         QString id = record[0];

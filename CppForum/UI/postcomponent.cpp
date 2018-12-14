@@ -10,6 +10,7 @@
 PostComponent::PostComponent(Post &post, const int index, QWidget *parent)
     :QWidget(parent)
     ,index(index)
+    ,id(post.Id())
 {
     vLayout = new QVBoxLayout(this);
     hLayout = new QHBoxLayout();
@@ -67,9 +68,7 @@ PostComponent::PostComponent(Post &post, const int index, QWidget *parent)
 
         //link delete button to another signal to pass parameter
         connect(deletePost, &QPushButton::clicked, [this]{
-//            qDebug()<<"post del = "<<this->index;
-//            qDebug()<<"post del = "<<index;
-            if(Forum::Get().GetCurBoard().DeletePost(this->index)) {
+            if(Forum::Get().GetCurBoard().DeletePost(this->Id())) {
                 //send this signal need 'this' pointer
                 emit DeletePostAtIndex(this->index);
             }

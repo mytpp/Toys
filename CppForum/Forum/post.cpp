@@ -19,7 +19,7 @@ Post::Post(const QString& id, const QString& author, const QString& authorId,
 }
 
 bool Post::AddComment(const QString &content) {
-    auto& storage = ForumStorage::GetStorage("comments");
+    auto& storage = ForumStorage::GetStorage(ForumStorage::COMMENTS);
     QVector<QString> record;
     record<<QString().setNum(storage.NextId())
           <<Forum::Get().GetCurBoard().Name()
