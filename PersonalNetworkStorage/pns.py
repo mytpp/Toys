@@ -103,24 +103,29 @@ async def send_file(src, dst, writer, loop):
         await writer.drain()
     logging.info('Finish sending file.')
 
-def local_to_physical(path):
-    global config
-    path = path.strip()
-    if path.find(':') == -1: # path is like '/rootdir/file'
-        return '//' + config['ip'] + ':' + config['port'] + path
-    return '//' + config['ip'] + ':' + config['port'] + '/' + path
-
 
 ################################################################################
 #---------------------------------Daemon Side----------------------------------#
 
 #----------------------------Database Initiliztion-----------------------------#
-def root_to_physical(localpath):
+def root_to_relative(localpath):
     return localpath.split(config['root'])[1]
 
-async def load_path(root, istracker=True, cursor=None):
+def root_to_physical(path, in_default_root=True):
     global config
-    path_list = [root + subpath for subpath in os.listdir(root)]
+    if os.path.isdir(path): path += '/'  # identify a dir
+    if in_default_root:
+        path = root_to_relative(path)
+    else:
+        path = '/' + path
+    return '//' + config['ip'] + ':' + config['port'] + path
+
+async def load_path(root, cursor=None, in_default_root=True):
+    global config
+    if os.path.isdir(root):
+        path_list = [root + subpath for subpath in os.listdir(root)]
+    else:
+        path_list = [root]
     for path in path_list:
         if not 'tracker' in config: # this is tracker
             logging.info('loading ' + path)
@@ -133,7 +138,7 @@ async def load_path(root, istracker=True, cursor=None):
                 (physical_path, category, ctime, mtime, size, host_addr, host_name)
                 values  (?, ?, ?, ?, ?, ?, ?)
                 ''', 
-                (root_to_physical(path) , os.path.isfile(path), 
+                (root_to_relative(path) , os.path.isfile(path), 
                 ctime, mtime, os.path.getsize(path), 
                 config['ip'] + ':' + config['port'], config['name'])
             )
@@ -142,7 +147,7 @@ async def load_path(root, istracker=True, cursor=None):
             reader, writer = await asyncio.open_connection(
                             config['tracker_ip'], config['tracker_port'])
             header = make_header(
-                    'ln ' + local_to_physical(path.split(config['root'])[1]), 
+                    'ln ' + root_to_physical(path, in_default_root), 
                     os.path.getsize(path))
             print(f'Send: {header!r}')
             writer.write(header.encode('utf-8'))
@@ -153,8 +158,8 @@ async def load_path(root, istracker=True, cursor=None):
             writer.close()
 
         # recursive load path
-        if(os.path.isdir(path)):
-            await load_path(path + '/', istracker=istracker, cursor=cursor)
+        if os.path.isdir(path):
+            await load_path(path + '/', cursor=cursor, in_default_root=in_default_root)
         
 async def update_db():
     global config, metaDB
@@ -163,10 +168,10 @@ async def update_db():
         cursor.execute('delete from filesystem where host_addr = ?', 
                         (config['ip'] + ':' + config['port'],))
         # insert physical paths in this host
-        await load_path(config['root'] + '/', istracker=True, cursor=cursor)
+        await load_path(config['root'] + '/', cursor=cursor)
         cursor.close()
     else:
-        await load_path(config['root'] + '/', istracker=False)
+        await load_path(config['root'] + '/')
             
 
 def init_db():
@@ -219,29 +224,33 @@ def parse_physical_path(physical_path):
             path = '/' + path
     return location, path
 
-# src is like '//137.0.0.1/local/path'
-# dst is a logical path, like '/dir/a/file' or None
+
+# 'dst' is a logical path, like '/dir/a/file' or None
+# If 'dst' is None, 'src' is like '//ip:port/local/path'. Otherwise, 
+# 'src' is like '//host_name/local/path', which must already exist in the database
+# 'host_name' is the peer's name
 async def echo_ln(src, dst, host_name, writer, size=0):
     global metaDB
     cursor = metaDB.cursor()
-    addr, path = parse_physical_path(src)
+    location, path = parse_physical_path(src)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if dst: 
         dst.rstrip('/')
-        cursor.execute('select count(*) from filesystem where logical_path = ?', (dst,))
-        # if we're linking to an existing logical path
+        cursor.execute('''  select count(*) from filesystem 
+                            where physical_path = ? and host_name = ?
+                        ''', (path, location))
         if cursor.fetchone()[0] == 0:
-            cursor.execute('insert into filesystem values (?, ?, ?, ?, ?, ?, ?, ?)',
-                            (dst, path, 2, now, now, 0, addr, host_name))
-        else:
-            cursor.execute('''
-                update into filesystem 
-                set physical_path = ?, mtime = ?, host_addr = ?, host_name = ?
-                where logical_path = ?
-                ''', (path, now, addr, host_name, dst)
-            )
-        cursor.execute('delete from filesystem where physical_path = ?', (path,))
+            writer.write(b'E: 404 Source Not Found\n\n')
+            await writer.drain()
+            return
+        cursor.execute('''
+            update filesystem 
+            set logical_path = ?, mtime = ?
+            where physical_path = ? and host_name = ?
+            ''', (dst, now, path, location)
+        )
+        logging.info('link %s to %s successfully' % (src, dst))
     else:
         # Judge whether the path is dir by whether it ends with '/'
         is_file = not path.endswith('/')
@@ -250,8 +259,8 @@ async def echo_ln(src, dst, host_name, writer, size=0):
             insert into filesystem
             (physical_path, category, ctime, mtime, size, host_addr, host_name)
             values  (?, ?, ?, ?, ?, ?, ?)
-            ''', (path, is_file, now, now, size, addr, host_name))
-        logging.info('update host %s\'s path' % host_name)
+            ''', (path, is_file, now, now, size, location, host_name))
+        logging.info('update host %s\'s path %s' % (host_name, path))
 
     # debug
     for row in cursor.execute('select * from filesystem'):
@@ -271,8 +280,19 @@ async def echo_ls(dst, writer):
     cursor = metaDB.cursor()
     file_list = []
     
-    dst.rstrip('/')
-    if dst.startswith('//'): # physical path
+    if dst == '//': # fetch all hosts' info
+        cursor.execute('''select distinct host_name, host_addr from filesystem
+                        where host_name is not null and host_addr is not null''')
+        results = cursor.fetchall()
+        if len(results) == 0: # should never happen
+            writer.write(b'E: 500 No Host Detected\n\n')
+            await writer.drain()
+            return
+        for record in results:
+            item = {'name': record[0], 'addr': record[1]}
+            file_list.append(item)
+    elif dst.startswith('//'): # physical path
+        dst = dst.rstrip('/')
         location, path = parse_physical_path(dst)
         if location.find('.') != -1: # if location denotes an 'ip:port'
             cursor.execute('''
@@ -303,6 +323,7 @@ async def echo_ls(dst, writer):
             }
             file_list.append(item)
     else: # logical path
+        dst = dst.rstrip('/')
         cursor.execute('''select * from filesystem where logical_path like ?
                             order by logical_path asc''', 
                         (dst + '%%', ))
@@ -363,14 +384,16 @@ async def echo_rm(dst, writer):
     dst.rstrip('/')
     cursor.execute('select physical_path from filesystem where logical_path = ?',
                     (dst,))
-    if cursor.fetchone()[0] == None:
+    if not cursor.fetchone()[0]:
         cursor.execute('delete from filesystem where logical_path = ?', (dst,))
+        logging.info('delete an unlinked logical path \'%s\''% dst)
     else:
         cursor.execute('''
             update into filesystem
             set logical_path = null
             where logical_path = ?
         ''', (dst,))
+        logging.info('disconnect logical path \'%s\' from its physical path' % dst)
     writer.write(b'E: 200 OK\n\n')
     await writer.drain()
 
@@ -504,7 +527,6 @@ async def echo_request(reader, writer):
     logging.info('Continue serving...')
 
 
-
 async def start_daemon():
     global config
     # if we're starting tracker, initiate meta database
@@ -543,6 +565,7 @@ def path_in_this_host(path):
         return True
     return False
 
+# input path to local path
 def extract_local_path_from(path):
     if path[0] != '/': # path is something like 'd:/pns/root/file'
         return path
@@ -551,10 +574,19 @@ def extract_local_path_from(path):
     return config['root'] + '/' + relative_path
 
 
-async def ln(src, dst):
+async def ln(src, dst = None):
+    if not dst: # src is like 'd:/pns/root/file'
+        if not os.path.exists(src):
+            print('src does not exist')
+            return
+        await load_path(src, in_default_root=False)
+        return
+    
     reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
-    header = make_header('ln ' + local_to_physical(src) + ' ' + dst)
+
+    # src is '//hostname/path', dst is  '/logical/path'
+    header = make_header('ln ' + src + ' ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
     await writer.drain()
@@ -600,7 +632,7 @@ async def md(dst):
 async def rm(dst):
     reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
-    header = make_header('md ' + dst)
+    header = make_header('rm ' + dst)
     print(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
     await writer.drain()
@@ -730,7 +762,7 @@ def do_command(cmd, *args):
     elif cmd == 'mv':
         asyncio.run(mv(*args))
     elif cmd == 'rm':
-        asyncio.run(mv(*args))
+        asyncio.run(rm(*args))
     else:
         print('Unknown Command')
 
