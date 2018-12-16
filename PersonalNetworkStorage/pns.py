@@ -120,14 +120,14 @@ def root_to_physical(path, in_default_root=True):
         path = '/' + path
     return '//' + config['ip'] + ':' + config['port'] + path
 
-async def load_path(root, cursor=None, in_default_root=True):
+async def load_path(root, cursor=None, in_default_root=True, is_tracker=True):
     global config
     if os.path.isdir(root):
         path_list = [root + subpath for subpath in os.listdir(root)]
     else:
         path_list = [root]
     for path in path_list:
-        if not 'tracker' in config: # this is tracker
+        if is_tracker: # this is tracker
             logging.info('loading ' + path)
             ctime_stamp = os.path.getctime(path)
             mtime_stamp = os.path.getmtime(path)
@@ -159,8 +159,9 @@ async def load_path(root, cursor=None, in_default_root=True):
 
         # recursive load path
         if os.path.isdir(path):
-            await load_path(path + '/', cursor=cursor, in_default_root=in_default_root)
-        
+            await load_path(path + '/', cursor=cursor, 
+                    in_default_root=in_default_root, is_tracker=is_tracker)
+
 async def update_db():
     global config, metaDB
     if not 'tracker' in config: # this is tracker
@@ -171,8 +172,8 @@ async def update_db():
         await load_path(config['root'] + '/', cursor=cursor)
         cursor.close()
     else:
-        await load_path(config['root'] + '/')
-            
+        await load_path(config['root'] + '/', is_tracker=False)
+
 
 def init_db():
     global config, metaDB
@@ -251,7 +252,7 @@ async def echo_ln(src, dst, host_name, writer, size=0):
             ''', (dst, now, path, location)
         )
         logging.info('link %s to %s successfully' % (src, dst))
-    else:
+    else: # Record a single physical path with no logical path
         # Judge whether the path is dir by whether it ends with '/'
         is_file = not path.endswith('/')
         path = path.rstrip('/')
@@ -262,9 +263,6 @@ async def echo_ln(src, dst, host_name, writer, size=0):
             ''', (path, is_file, now, now, size, location, host_name))
         logging.info('update host %s\'s path %s' % (host_name, path))
 
-    # debug
-    for row in cursor.execute('select * from filesystem'):
-        print(row)
     cursor.close()
     metaDB.commit()
 
@@ -426,12 +424,31 @@ async def echo_cp(src, dst, reader, writer, size = 0):
         if not os.path.exists(dst_path):  # if we are not covering a existing file
              with open(dst_path, 'wb') as f:
                 if size > 0:
+                    origin_size = size
                     while size >= 4096:
                         f.write(await reader.read(4096))
                         size -= 4096
                     f.write(await reader.read(size))
                     writer.write(b'E: 200 OK\n\n')
                     await writer.drain()
+                    # record new copied file in db
+                    if not 'tracker' in config:
+                        cursor = metaDB.cursor()
+                        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        path = root_to_relative(dst_path)
+                        cursor.execute('''
+                            insert into filesystem
+                            (physical_path, category, ctime, mtime, size, host_addr, host_name)
+                            values  (?, 1, ?, ?, ?, ?, ?)
+                            ''', 
+                            (path, now, now, origin_size, 
+                            config['ip'] + ':' + config['port'], config['name'])
+                        )
+                        metaDB.commit()
+                        cursor.close()
+                        logging.info('update host %s\'s path %s' % (config['name'], path))
+                    else:
+                        await ln(dst_path) # not tested
                 else:
                     writer.write(b'E: 400 No Length Field\n\n')
                     await writer.drain()
@@ -575,11 +592,14 @@ def extract_local_path_from(path):
 
 
 async def ln(src, dst = None):
-    if not dst: # src is like 'd:/pns/root/file'
+    if not dst: # link a single physical path
         if not os.path.exists(src):
             print('src does not exist')
             return
-        await load_path(src, in_default_root=False)
+        if src.find(config['root']) == -1:
+            await load_path(src, in_default_root=False, is_tracker=False)
+        else:
+            await load_path(src, is_tracker=False)
         return
     
     reader, writer = await asyncio.open_connection(
@@ -653,7 +673,7 @@ async def cp(src, dst):
     elif src_is_here and dst_is_here: 
         # use local filesystem
         src_path = extract_local_path_from(src)
-        if os.path.exists(src_path):
+        if not os.path.exists(src_path):
             print('src doesn\'t exist!')
             return
         dst_path = extract_local_path_from(dst)
@@ -661,14 +681,15 @@ async def cp(src, dst):
 
     elif src_is_here: # this is sending side
         src_path = extract_local_path_from(src)
-        if os.path.exists(src_path):
+        if not os.path.exists(src_path):
             print('src doesn\'t exist!')
             return
-        
+                
         # try to get dst ip and port
         reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
-        header = make_header('ls ' + dst)
+        parent = dst[0: dst.rfind('/')]
+        header = make_header('ls ' + parent)
         print(f'Send: {header!r}')
         writer.write(header.encode('utf-8'))
         await writer.drain()
@@ -678,7 +699,11 @@ async def cp(src, dst):
         data = await reader.read()
         response = json.loads(data)
         dst_sock = response[0]['host'].split(':')
-        relative_path = response[0]['type']
+        if dst[1] != '/': # dst is logical path
+            file_name = dst[dst.rfind('/'): ]
+            relative_path = response[0]['type'] + '/' + file_name
+        else:             # dst is physical path
+            relative_path = dst.split('/', 3)[3]
         writer.close()
 
         # send file to dst
@@ -692,10 +717,6 @@ async def cp(src, dst):
 
     else: # dst_is_here
         dst_path = extract_local_path_from(dst)
-        if os.path.exists(dst_path):
-            print('dst doesn\'t exist!')
-            return
-        
         # try to get src ip and port
         reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
@@ -709,7 +730,10 @@ async def cp(src, dst):
         data = await reader.read()
         response = json.loads(data)
         src_sock = response[0]['host'].split(':')
-        relative_path = response[0]['type']
+        if dst[1] != '/': # dst is logical path
+            relative_path = response[0]['type']
+        else:
+            relative_path = src.split('/', 3)[3]
         writer.close()
 
         # send a header to let src host start sending file
@@ -744,6 +768,11 @@ async def cp(src, dst):
             f.write(await reader.read(size))
             writer.write(b'E: 200 OK\n\n')
             await writer.drain()
+        logging.info(f'Receive file {src_path!r} successfully')
+
+        # if dst is in root, ln it in tracker's db
+        if dst_path.find(config['root']) != -1:
+            await ln(dst_path)
 
 
 async def mv(src, dst):
