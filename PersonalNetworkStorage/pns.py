@@ -374,33 +374,52 @@ async def echo_md(dst, writer):
     cursor.close()
 
 
-# dst is logical path, like '/logical/path'
+# If dst is logical path, like '/logical/path', 
+# then removing it just disconnects its link with corresponding physical path
+# If dst is physical path, like '//hostnameOrSock/local/path', 
+# then removing it just erases the record in db and doesn't actually delete it.
 async def echo_rm(dst, writer):
     global metaDB
     cursor = metaDB.cursor()
 
     dst.rstrip('/')
-    cursor.execute('select physical_path from filesystem where logical_path = ?',
-                    (dst,))
-    if not cursor.fetchone()[0]:
-        cursor.execute('delete from filesystem where logical_path = ?', (dst,))
-        logging.info('delete an unlinked logical path \'%s\''% dst)
-    else:
-        cursor.execute('''
-            update into filesystem
-            set logical_path = null
-            where logical_path = ?
-        ''', (dst,))
-        logging.info('disconnect logical path \'%s\' from its physical path' % dst)
+    if dst[1] != '/': # logical path
+        cursor.execute('select physical_path from filesystem where logical_path = ?',
+                        (dst,))
+        if not cursor.fetchone()[0]:
+            cursor.execute('delete from filesystem where logical_path = ?', (dst,))
+            logging.info('delete an unlinked logical path \'%s\''% dst)
+        else:
+            cursor.execute('''
+                update filesystem set logical_path = null
+                where logical_path = ? 
+            ''', (dst,))
+            logging.info('disconnect logical path \'%s\' with its physical path' % dst)
+    else: # physical path
+        location, dst_path = parse_physical_path(dst)
+        if location.find('.') == -1: # location is a ip:port
+            cursor.execute('''
+                    delete from filesystem 
+                    where physical_path = ? and host_name = ?
+                ''', (dst_path, location))
+        else:  # location is a hostname
+            cursor.execute('''
+                    delete from filesystem 
+                    where physical_path = ? and host_addr = ?
+                ''', (dst_path, location))
+        logging.info(f'delete a physical path {dst_path!r} from {location!r}')
+    
+    metaDB.commit()
+    cursor.close()
     writer.write(b'E: 200 OK\n\n')
     await writer.drain()
 
 
-# src and dst should both be physical path like '//127.0.0.1/path
-# Either src or dst must be this host,
+# src and dst should both be physical path
+# Either src or dst must be this host, like '//127.0.0.1:8080/path'
 # which determine whether this host sends or receives a file
 # support only single file transfer
-async def echo_cp(src, dst, reader, writer, size = 0):
+async def echo_cp(src, dst, reader, writer, size=0):
     src_addr, src_path = parse_physical_path(src)
     dst_addr, dst_path = parse_physical_path(dst)
     
@@ -457,8 +476,29 @@ async def echo_cp(src, dst, reader, writer, size = 0):
             await writer.drain()
 
 
-async def echo_mv(src, dst, writer):
-    pass
+# This must be the sending side
+# src is like '//hostsock/path'
+async def echo_mv(src, dst, reader, writer, size=0):
+    src_addr, relative_path = parse_physical_path(src)
+    src_path = config['root'] + relative_path
+    # allow only moving from root directory
+    if not os.path.exists(src_path):
+        writer.write(b'E: 404 File Not Found')
+        await writer.drain()
+    await echo_cp(src, dst, reader, writer, size)
+    os.remove(src_path)
+    if not 'tracker' in config:
+        cursor = metaDB.cursor()
+        cursor.execute('''
+            delete from filesystem 
+            where physical_path = ? and host_addr = ?
+        ''', (relative_path, src_addr))
+        metaDB.commit()
+        cursor.close()
+        logging.info(f'delete a physical path {relative_path!r} from {src_addr!r}')
+    else:
+        await rm(src)
+    logging.info(f'Remove {src_path!r}.')
 
 
 async def echo_illegal_command(writer):
@@ -535,7 +575,10 @@ async def echo_request(reader, writer):
         if len(cmd) < 3:
             await echo_illegal_command(writer)
             return
-        await echo_mv(cmd[1], cmd[2], writer)
+        if 'L' in header:
+            await echo_mv(cmd[1], cmd[2], reader, writer, int(header['L']))
+        else:
+            await echo_mv(cmd[1], cmd[2], reader, writer)
     else:
         await echo_illegal_command(writer)
         return
@@ -665,7 +708,7 @@ async def rm(dst):
 
 # At least one of 'src' and 'dst' should be in this host.
 # The one which is in other host is something like '//hostname/path' or '/logical/path'
-async def cp(src, dst):
+async def cp(src, dst, delete_src=False):
     src_is_here = path_in_this_host(src)
     dst_is_here = path_in_this_host(dst)
     if not src_is_here and not dst_is_here:
@@ -677,7 +720,10 @@ async def cp(src, dst):
             print('src doesn\'t exist!')
             return
         dst_path = extract_local_path_from(dst)
-        shutil.copyfile(src_path, dst_path)
+        if delete_src:
+            shutil.move(src_path, dst_path)
+        else:
+            shutil.copyfile(src_path, dst_path)
 
     elif src_is_here: # this is sending side
         src_path = extract_local_path_from(src)
@@ -709,11 +755,14 @@ async def cp(src, dst):
         # send file to dst
         reader, writer = await asyncio.open_connection(dst_sock[0], dst_sock[1])
         loop = asyncio.get_running_loop()
-        dst_path = '//' + dst_sock[0] + '/' + relative_path
+        dst_path = '//' + ':'.join(dst_sock) + '/' + relative_path
         await send_file(src_path, dst_path, writer, loop)
         if await get_error(reader, writer):
             return
-        print('Send file successfully!')
+        if delete_src:
+            os.remove(src_path)
+            await rm(src)
+        logging.info('Send file successfully!')
 
     else: # dst_is_here
         dst_path = extract_local_path_from(dst)
@@ -739,8 +788,11 @@ async def cp(src, dst):
         # send a header to let src host start sending file
         reader, writer = await asyncio.open_connection(src_sock[0], src_sock[1])
         loop = asyncio.get_running_loop()
-        src_path = '//' + src_sock[0] + '/' + relative_path
-        header = make_header('cp ' + src_path + ' ' + dst_path)
+        src_path = '//' + ':'.join(src_sock) + '/' + relative_path
+        if delete_src:
+            header = make_header('mv ' + src_path + ' ' + dst_path)
+        else:
+            header = make_header('cp ' + src_path + ' ' + dst_path)
         print(f'Send: {header!r}')
         writer.write(header.encode('utf-8'))
         await writer.drain()
@@ -776,7 +828,7 @@ async def cp(src, dst):
 
 
 async def mv(src, dst):
-    pass
+    await cp(src, dst, delete_src=True)
 
 
 def do_command(cmd, *args):
