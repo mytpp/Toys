@@ -42,11 +42,10 @@ def parse_config(file_name):
     this_ip = socket.gethostbyname(socket.gethostname())
     config['root'] = config['root'].rstrip('/')
     config['port'] = str(config['port'])
+    tracker_addr = config['tracker'].split(':')
+    config['tracker_ip'] = tracker_addr[0]
+    config['tracker_port'] = tracker_addr[1]
     config['ip'] = this_ip
-    if 'tracker' in config:
-        tracker_addr = config['tracker'].split(':')
-        config['tracker_ip'] = tracker_addr[0]
-        config['tracker_port'] = tracker_addr[1]
 
     logging.info('Load config successfully')
     # print(config)
@@ -164,7 +163,7 @@ async def load_path(root, cursor=None, in_default_root=True, is_tracker=True):
 
 async def update_db():
     global config, metaDB
-    if not 'tracker' in config: # this is tracker
+    if config['istracker']: # this is tracker
         cursor = metaDB.cursor()
         cursor.execute('delete from filesystem where host_addr = ?', 
                         (config['ip'] + ':' + config['port'],))
@@ -321,7 +320,6 @@ async def echo_ls(dst, writer):
             }
             file_list.append(item)
     else: # logical path
-        dst = dst.rstrip('/')
         cursor.execute('''select * from filesystem where logical_path like ?
                             order by logical_path asc''', 
                         (dst + '%%', ))
@@ -451,7 +449,7 @@ async def echo_cp(src, dst, reader, writer, size=0):
                     writer.write(b'E: 200 OK\n\n')
                     await writer.drain()
                     # record new copied file in db
-                    if not 'tracker' in config:
+                    if config['istracker']:
                         cursor = metaDB.cursor()
                         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         path = root_to_relative(dst_path)
@@ -487,7 +485,7 @@ async def echo_mv(src, dst, reader, writer, size=0):
         await writer.drain()
     await echo_cp(src, dst, reader, writer, size)
     os.remove(src_path)
-    if not 'tracker' in config:
+    if config['istracker']:
         cursor = metaDB.cursor()
         cursor.execute('''
             delete from filesystem 
@@ -590,7 +588,7 @@ async def echo_request(reader, writer):
 async def start_daemon():
     global config
     # if we're starting tracker, initiate meta database
-    if not 'tracker' in config: 
+    if config['istracker']:
         init_db()
     await update_db()
     
@@ -602,7 +600,7 @@ async def start_daemon():
         await server.serve_forever()
 
     # if this is tracker, close database
-    if not 'tracker' in config:
+    if config['istracker']:
         # close database
         global metaDB
         metaDB.commit()
@@ -779,8 +777,8 @@ async def cp(src, dst, delete_src=False):
         data = await reader.read()
         response = json.loads(data)
         src_sock = response[0]['host'].split(':')
-        if dst[1] != '/': # dst is logical path
-            relative_path = response[0]['type']
+        if src[1] != '/': # src is logical path
+            relative_path = response[0]['type'].lstrip('/')
         else:
             relative_path = src.split('/', 3)[3]
         writer.close()
