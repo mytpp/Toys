@@ -4,6 +4,7 @@
 #include "Forum/forum.h"
 #include "Storage/forumstorage.h"
 #include <QSqlDatabase>
+#include <QMessageBox>
 #include <QDebug>
 
 namespace ui {
@@ -12,7 +13,7 @@ LoginDialog *loginDialog;
 MainWindow *mainWindow;
 }
 
-static constexpr bool first_initiate = true;
+static constexpr bool first_initiate = false;
 
 int main(int argc, char *argv[])
 {
@@ -27,7 +28,14 @@ int main(int argc, char *argv[])
     if(first_initiate)
         qDebug()<<ForumStorage::InitiateStorage();
 
-    Forum::SetExistUsers();
+    try {
+        Forum::SetExistUsers();
+    } catch (...) {
+        QMessageBox::warning(nullptr, "Error!",
+                             "Loading userinfo failed!", QMessageBox::Ok);
+        return 0;
+    }
+
 
     ui::loginDialog = new LoginDialog;
     ui::loginDialog->show();

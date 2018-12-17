@@ -4,6 +4,7 @@
 #include <QUuid>
 #include <QDate>
 #include <QVector>
+#include <QException>
 #include <QDebug>
 #include "Storage/userinfostorage.h"
 #include "Storage/boardsstorage.h"
@@ -224,6 +225,7 @@ void Forum::SetExistUsers(){
         users.insert({id, {status, postCount, name, password}});
         record.clear();
     }
-
+    if(users.empty())
+        throw QException();
 }
 
