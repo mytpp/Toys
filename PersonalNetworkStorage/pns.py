@@ -19,7 +19,6 @@ import datetime
 import time
 import socket
 
-
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -30,6 +29,14 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 config = None # to be read from *.yaml
 metaDB = None # meta database used only in tracker
+
+# # used by daemon to communicate with tracker with long TCP connection (keep alive)
+# long_reader = None
+# long_writer = None
+
+# used by tracker to record living daemons in the pns
+daemons = []
+
 
 def parse_config(file_name):
     # read config from *.yaml
@@ -64,12 +71,14 @@ def parse_header(header_str):
     return header
 
 # construct a request header
-def make_header(cmd, length = 0):
-    global config
+def make_header(cmd, length=0, is_heartbeat=False):
     sha1 = hashlib.sha1()
     sha1.update(config['secret'].encode('utf-8'))
     sha1.update(cmd.encode('utf-8'))
-    header  = 'V: ' + config['name'] + ' ' + config['port'] + '\n'
+    if is_heartbeat:
+        header  = 'V: ' + config['name'] + ' HB' + '\n'
+    else:
+        header  = 'V: ' + config['name'] + ' V1' + '\n'
     header += 'A: ' + sha1.hexdigest() + '\n'
     header += 'C: ' + cmd + '\n'
     if length > 0:
@@ -504,6 +513,7 @@ async def echo_illegal_command(writer):
     writer.write(b'E: 400 Illegal Command\n\n')
     await writer.drain()
 
+
 async def echo_request(reader, writer):
     data = await reader.readuntil(b'\n\n')
     header = parse_header(data.decode('utf-8'))
@@ -523,7 +533,6 @@ async def echo_request(reader, writer):
         return
 
     # check authorization
-    global config
     sha1 = hashlib.sha1()
     sha1.update(config['secret'].encode('utf-8'))
     sha1.update(header['C'].encode('utf-8'))
@@ -531,10 +540,28 @@ async def echo_request(reader, writer):
         writer.write(b'E: 401 Unauthorized\n\n')
         await writer.drain()
         return
-    
+
+    host_name, ver = header['V'].split(' ', 1)
+    # If we receive a host's heartbeat, update 'daemons'
+    if ver == 'HB':
+        i = 0
+        for daemon in daemons:
+            if daemon['host_name'] == host_name:
+                break
+            else:
+                i = i + 1
+        now = time.time()
+        if i == len(daemons):
+            daemons.append({
+                'host_name': host_name,
+                'timestamp': now
+            })
+            logging.info(f'New host started: {host_name!r}')
+        else:
+            daemons[i]['timestamp'] = now
+            logging.info(f'Update {host_name!r}\'s timestamp: {now!r}')
 
     # handle authorized request
-    host_name = header['V'].split(' ')[0]
     cmd = header['C'].split(' ')
     if cmd[0] == 'ln':
         if len(cmd) < 2:
@@ -585,12 +612,55 @@ async def echo_request(reader, writer):
     logging.info('Continue serving...')
 
 
+async def heartbeat():
+    header = make_header('ls //', is_heartbeat=True).encode('utf-8')
+    while True:
+        await asyncio.sleep(1)
+        reader, writer = await asyncio.open_connection(
+                config['tracker_ip'], config['tracker_port'])
+        writer.write(header)
+        await writer.drain()
+        logging.info(f'Send heartbeat')
+        if await get_error(reader, writer):
+            return
+        
+        # get living daemons
+        data = await reader.read()
+        response = json.loads(data)
+        daemons = [daemon['name'] for daemon in response]
+        logging.info(f'Living daemons: {daemons!r}')
+
+
+def daemon_filter(daemon):
+    now = time.time()
+    if now - daemon['timestamp'] > 3:
+        cursor = metaDB.cursor()
+        cursor.execute('delete from filesystem where host_name = ?', 
+                        (daemon['host_name'],))
+        metaDB.commit()
+        cursor.close()
+        logging.info('Unmount host %s'% daemon['host_name'])
+        return False
+    return True
+
+async def listen_heartbeat():
+    global daemons
+    while True:
+        await asyncio.sleep(3)
+        daemons = list(filter(daemon_filter, daemons))
+
+
 async def start_daemon():
-    global config
     # if we're starting tracker, initiate meta database
     if config['istracker']:
         init_db()
     await update_db()
+
+    # send heartbeat to tracker periodically
+    if not config['istracker']:
+        asyncio.create_task(heartbeat())
+    else:
+        asyncio.create_task(listen_heartbeat())
     
     server = await asyncio.start_server(
         echo_request, config['ip'], config['port'])
@@ -645,7 +715,6 @@ async def ln(src, dst = None):
     
     reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
-
     # src is '//hostname/path', dst is  '/logical/path'
     header = make_header('ln ' + src + ' ' + dst)
     print(f'Send: {header!r}')
