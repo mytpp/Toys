@@ -4,5 +4,5 @@ name: h1
 port: 60000
 root: d:/pns/h1/
 secret: passW0RD
-tracker: 10.8.168.134:60000
+tracker: 127.0.0.1:60000
 istracker: true

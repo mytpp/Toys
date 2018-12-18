@@ -13,8 +13,8 @@ import argparse
 import yaml
 import json
 import asyncio
+import aiosqlite3
 import hashlib
-import sqlite3
 import datetime
 import time
 import socket
@@ -30,12 +30,9 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 config = None # to be read from *.yaml
 metaDB = None # meta database used only in tracker
 
-# # used by daemon to communicate with tracker with long TCP connection (keep alive)
-# long_reader = None
-# long_writer = None
-
 # used by tracker to record living daemons in the pns
-daemons = []
+# map hostname to its timestamp
+daemons = {}
 
 
 def parse_config(file_name):
@@ -63,10 +60,10 @@ def parse_header(header_str):
     print(f"Received header:\n{fields!r}")
     header = {}
     for line in fields:
-        # word_list = line.split(': ')
-        # if word_list < 2
-        #    continue
-        key, value = line.split(': ')
+        word_list = line.split(': ')
+        if len(word_list) < 2:
+           continue
+        key, value = word_list
         header[key] = value
     return header
 
@@ -141,7 +138,7 @@ async def load_path(root, cursor=None, in_default_root=True, is_tracker=True):
             mtime_stamp = os.path.getmtime(path)
             ctime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ctime_stamp))
             mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
-            cursor.execute('''
+            await cursor.execute('''
                 insert into filesystem
                 (physical_path, category, ctime, mtime, size, host_addr, host_name)
                 values  (?, ?, ?, ?, ?, ?, ?)
@@ -150,7 +147,7 @@ async def load_path(root, cursor=None, in_default_root=True, is_tracker=True):
                 ctime, mtime, os.path.getsize(path), 
                 config['ip'] + ':' + config['port'], config['name'])
             )
-            metaDB.commit()
+            await metaDB.commit()
         else:  # this is agent
             reader, writer = await asyncio.open_connection(
                             config['tracker_ip'], config['tracker_port'])
@@ -173,23 +170,24 @@ async def load_path(root, cursor=None, in_default_root=True, is_tracker=True):
 async def update_db():
     global config, metaDB
     if config['istracker']: # this is tracker
-        cursor = metaDB.cursor()
-        cursor.execute('delete from filesystem where host_addr = ?', 
+        cursor = await metaDB.cursor()
+        await cursor.execute('delete from filesystem where host_addr = ?', 
                         (config['ip'] + ':' + config['port'],))
         # insert physical paths in this host
         await load_path(config['root'] + '/', cursor=cursor)
-        cursor.close()
+        await cursor.close()
     else:
         await load_path(config['root'] + '/', is_tracker=False)
 
 
-def init_db():
+async def init_db():
     global config, metaDB
-    metaDB = sqlite3.connect('pns.sqlite3')
-    cursor = metaDB.cursor()
+    loop = asyncio.get_running_loop()
+    metaDB = await aiosqlite3.connect('pns.sqlite3', loop=loop)
+    cursor = await metaDB.cursor()
     # Both directory and file paths don't end with '/',
     # except logical root path
-    cursor.execute('''
+    await cursor.execute('''
     create table if not exists filesystem (
         logical_path  varcahr,     -- all logical path is link
         physical_path varcahr,     -- is null if logical_path is not linked
@@ -204,18 +202,18 @@ def init_db():
     
     # if the database is empty, 
     # this is the first time we start the tracker
-    cursor.execute('select count(*) from filesystem')
-    if cursor.fetchone()[0] == 0:
+    await cursor.execute('select count(*) from filesystem')
+    if (await cursor.fetchone())[0] == 0:
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # insert logical root
-        cursor.execute('''
+        await cursor.execute('''
             insert into filesystem
             (logical_path, category, ctime, mtime, size)
             values ('/', 2, ?, ?, 0)
             ''', (now, now)
         )
-    metaDB.commit()
-    cursor.close()
+    await metaDB.commit()
+    await cursor.close()
 
 
 #------------------------------Callback & Utilities---------------------------#
@@ -240,20 +238,20 @@ def parse_physical_path(physical_path):
 # 'host_name' is the peer's name
 async def echo_ln(src, dst, host_name, writer, size=0):
     global metaDB
-    cursor = metaDB.cursor()
+    cursor = await metaDB.cursor()
     location, path = parse_physical_path(src)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if dst: 
         dst.rstrip('/')
-        cursor.execute('''  select count(*) from filesystem 
+        await cursor.execute('''  select count(*) from filesystem 
                             where physical_path = ? and host_name = ?
                         ''', (path, location))
-        if cursor.fetchone()[0] == 0:
+        if (await cursor.fetchone())[0] == 0:
             writer.write(b'E: 404 Source Not Found\n\n')
             await writer.drain()
             return
-        cursor.execute('''
+        await cursor.execute('''
             update filesystem 
             set logical_path = ?, mtime = ?
             where physical_path = ? and host_name = ?
@@ -264,15 +262,15 @@ async def echo_ln(src, dst, host_name, writer, size=0):
         # Judge whether the path is dir by whether it ends with '/'
         is_file = not path.endswith('/')
         path = path.rstrip('/')
-        cursor.execute('''
+        await cursor.execute('''
             insert into filesystem
             (physical_path, category, ctime, mtime, size, host_addr, host_name)
             values  (?, ?, ?, ?, ?, ?, ?)
             ''', (path, is_file, now, now, size, location, host_name))
         logging.info('update host %s\'s path %s' % (host_name, path))
 
-    cursor.close()
-    metaDB.commit()
+    await cursor.close()
+    await metaDB.commit()
 
     writer.write(b'E: 200 OK\n\n')
     await writer.drain()
@@ -283,13 +281,13 @@ async def echo_ln(src, dst, host_name, writer, size=0):
 #                      or  '//h2/local/path'
 async def echo_ls(dst, writer):
     global metaDB
-    cursor = metaDB.cursor()
+    cursor = await metaDB.cursor()
     file_list = []
     
     if dst == '//': # fetch all hosts' info
-        cursor.execute('''select distinct host_name, host_addr from filesystem
+        await cursor.execute('''select distinct host_name, host_addr from filesystem
                         where host_name is not null and host_addr is not null''')
-        results = cursor.fetchall()
+        results = await cursor.fetchall()
         if len(results) == 0: # should never happen
             writer.write(b'E: 500 No Host Detected\n\n')
             await writer.drain()
@@ -301,19 +299,19 @@ async def echo_ls(dst, writer):
         dst = dst.rstrip('/')
         location, path = parse_physical_path(dst)
         if location.find('.') != -1: # if location denotes an 'ip:port'
-            cursor.execute('''
+            await cursor.execute('''
                 select * from filesystem 
                 where host_addr like ? and physical_path like ?
                 order by physical_path asc
             ''', (location, path + '%%'))
         else: # if location denotes an name
-            cursor.execute('''
+            await cursor.execute('''
                 select * from filesystem 
                 where host_name = ? and physical_path like ?
                 order by physical_path asc
             ''', (location, path + '%%'))
             
-        results = cursor.fetchall()
+        results = await cursor.fetchall()
         if len(results) == 0:
             writer.write(b'E: 404 Path Not Found\n\n')
             await writer.drain()
@@ -329,10 +327,10 @@ async def echo_ls(dst, writer):
             }
             file_list.append(item)
     else: # logical path
-        cursor.execute('''select * from filesystem where logical_path like ?
+        await cursor.execute('''select * from filesystem where logical_path like ?
                             order by logical_path asc''', 
                         (dst + '%%', ))
-        results = cursor.fetchall()
+        results = await cursor.fetchall()
         if len(results) == 0:
             writer.write(b'E: 404 Path Not Found\n\n')
             await writer.drain()
@@ -347,8 +345,8 @@ async def echo_ls(dst, writer):
                 'host' : record[6]  # ip and port
             }
         file_list.append(item)
-    cursor.close()
-    metaDB.commit()
+    await cursor.close()
+    await metaDB.commit()
     data = b'E: 200 OK\n\n' + json.dumps(file_list).encode('utf-8')
     # logging.info(data)
     writer.write(data) # need to add 'L' field in header?
@@ -359,26 +357,26 @@ async def echo_ls(dst, writer):
 # dst is logical path, like '/logical/path'
 async def echo_md(dst, writer):
     global metaDB
-    cursor = metaDB.cursor()
+    cursor = await metaDB.cursor()
 
     dst.rstrip('/')
-    cursor.execute('select count(*) from filesystem where logical_path = ?', 
+    await cursor.execute('select count(*) from filesystem where logical_path = ?', 
                     (dst,))
-    if cursor.fetchone()[0] == 0: 
+    if (await cursor.fetchone())[0] == 0: 
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        cursor.execute('''
+        await cursor.execute('''
             insert into filesystem
             (logical_path, category, ctime, mtime, size)
             values (?, 2, ?, ?, 0)
             ''', (dst, now, now)
         )
-        metaDB.commit()
+        await metaDB.commit()
         writer.write(b'E: 200 OK\n\n')
         await writer.drain()
     else: # error
         writer.write(b'E: 406 Path Already Exists\n\n')
         await writer.drain()
-    cursor.close()
+    await cursor.close()
 
 
 # If dst is logical path, like '/logical/path', 
@@ -387,17 +385,17 @@ async def echo_md(dst, writer):
 # then removing it just erases the record in db and doesn't actually delete it.
 async def echo_rm(dst, writer):
     global metaDB
-    cursor = metaDB.cursor()
+    cursor = await metaDB.cursor()
 
     dst.rstrip('/')
     if dst[1] != '/': # logical path
-        cursor.execute('select physical_path from filesystem where logical_path = ?',
+        await cursor.execute('select physical_path from filesystem where logical_path = ?',
                         (dst,))
-        if not cursor.fetchone()[0]:
-            cursor.execute('delete from filesystem where logical_path = ?', (dst,))
+        if not (await cursor.fetchone())[0]:
+            await cursor.execute('delete from filesystem where logical_path = ?', (dst,))
             logging.info('delete an unlinked logical path \'%s\''% dst)
         else:
-            cursor.execute('''
+            await cursor.execute('''
                 update filesystem set logical_path = null
                 where logical_path = ? 
             ''', (dst,))
@@ -405,19 +403,19 @@ async def echo_rm(dst, writer):
     else: # physical path
         location, dst_path = parse_physical_path(dst)
         if location.find('.') == -1: # location is a ip:port
-            cursor.execute('''
+            await cursor.execute('''
                     delete from filesystem 
                     where physical_path = ? and host_name = ?
                 ''', (dst_path, location))
         else:  # location is a hostname
-            cursor.execute('''
+            await cursor.execute('''
                     delete from filesystem 
                     where physical_path = ? and host_addr = ?
                 ''', (dst_path, location))
         logging.info(f'delete a physical path {dst_path!r} from {location!r}')
     
-    metaDB.commit()
-    cursor.close()
+    await metaDB.commit()
+    await cursor.close()
     writer.write(b'E: 200 OK\n\n')
     await writer.drain()
 
@@ -459,10 +457,10 @@ async def echo_cp(src, dst, reader, writer, size=0):
                     await writer.drain()
                     # record new copied file in db
                     if config['istracker']:
-                        cursor = metaDB.cursor()
+                        cursor = await metaDB.cursor()
                         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         path = root_to_relative(dst_path)
-                        cursor.execute('''
+                        await cursor.execute('''
                             insert into filesystem
                             (physical_path, category, ctime, mtime, size, host_addr, host_name)
                             values  (?, 1, ?, ?, ?, ?, ?)
@@ -470,8 +468,8 @@ async def echo_cp(src, dst, reader, writer, size=0):
                             (path, now, now, origin_size, 
                             config['ip'] + ':' + config['port'], config['name'])
                         )
-                        metaDB.commit()
-                        cursor.close()
+                        await metaDB.commit()
+                        await cursor.close()
                         logging.info('update host %s\'s path %s' % (config['name'], path))
                     else:
                         await ln(dst_path) # not tested
@@ -495,13 +493,13 @@ async def echo_mv(src, dst, reader, writer, size=0):
     await echo_cp(src, dst, reader, writer, size)
     os.remove(src_path)
     if config['istracker']:
-        cursor = metaDB.cursor()
-        cursor.execute('''
+        cursor = await metaDB.cursor()
+        await cursor.execute('''
             delete from filesystem 
             where physical_path = ? and host_addr = ?
         ''', (relative_path, src_addr))
-        metaDB.commit()
-        cursor.close()
+        await metaDB.commit()
+        await cursor.close()
         logging.info(f'delete a physical path {relative_path!r} from {src_addr!r}')
     else:
         await rm(src)
@@ -544,22 +542,10 @@ async def echo_request(reader, writer):
     host_name, ver = header['V'].split(' ', 1)
     # If we receive a host's heartbeat, update 'daemons'
     if ver == 'HB':
-        i = 0
-        for daemon in daemons:
-            if daemon['host_name'] == host_name:
-                break
-            else:
-                i = i + 1
         now = time.time()
-        if i == len(daemons):
-            daemons.append({
-                'host_name': host_name,
-                'timestamp': now
-            })
-            logging.info(f'New host started: {host_name!r}')
-        else:
-            daemons[i]['timestamp'] = now
-            logging.info(f'Update {host_name!r}\'s timestamp: {now!r}')
+        daemons[host_name] = now
+        logging.info(f'Update {host_name!r}\'s timestamp: {now!r}')
+        
 
     # handle authorized request
     cmd = header['C'].split(' ')
@@ -631,29 +617,29 @@ async def heartbeat():
         logging.info(f'Living daemons: {daemons!r}')
 
 
-def daemon_filter(daemon):
-    now = time.time()
-    if now - daemon['timestamp'] > 3:
-        cursor = metaDB.cursor()
-        cursor.execute('delete from filesystem where host_name = ?', 
-                        (daemon['host_name'],))
-        metaDB.commit()
-        cursor.close()
-        logging.info('Unmount host %s'% daemon['host_name'])
-        return False
-    return True
-
 async def listen_heartbeat():
     global daemons
     while True:
         await asyncio.sleep(3)
-        daemons = list(filter(daemon_filter, daemons))
+        host_names = list(daemons.keys()) # make a copy of keys
+        now = time.time()
+        for name in host_names:
+            if now - daemons[name] > 3:
+                del daemons[name]
+                # remove its records in database
+                cursor = await metaDB.cursor()
+                await cursor.execute('delete from filesystem where host_name=?', 
+                                    (name,))
+                await metaDB.commit()
+                await cursor.close()
+                logging.info('Unmount host %s'% name)
+        # daemons = list(filter(daemon_filter, daemons))
 
 
 async def start_daemon():
     # if we're starting tracker, initiate meta database
     if config['istracker']:
-        init_db()
+        await init_db()
     await update_db()
 
     # send heartbeat to tracker periodically
@@ -673,8 +659,8 @@ async def start_daemon():
     if config['istracker']:
         # close database
         global metaDB
-        metaDB.commit()
-        metaDB.close()
+        await metaDB.commit()
+        await metaDB.close()
 
 
 ##############################################################################
@@ -898,19 +884,19 @@ async def mv(src, dst):
     await cp(src, dst, delete_src=True)
 
 
-def do_command(cmd, *args):
+async def do_command(cmd, *args):
     if cmd == 'cp':
-        asyncio.run(cp(*args))
+        await cp(*args)
     elif cmd == 'ln':
-        asyncio.run(ln(*args))
+        await ln(*args)
     elif cmd == 'ls':
-        asyncio.run(ls(*args))
+        await ls(*args)
     elif cmd == 'md':
-        asyncio.run(md(*args))
+        await md(*args)
     elif cmd == 'mv':
-        asyncio.run(mv(*args))
+        await mv(*args)
     elif cmd == 'rm':
-        asyncio.run(rm(*args))
+        await rm(*args)
     else:
         print('Unknown Command')
 
@@ -937,16 +923,19 @@ def main():
         if not args.cmd:
             print('Please enter a command')
         else:
-            do_command(*(args.cmd))
+            asyncio.run(do_command(*(args.cmd)))
     elif args.mode == 'daemon':
         logging.info('Starting daemon...')
         # for Windows, use iocp
         # if sys.platform == 'win32':
-        #     asyncio.set_event_loop(asyncio.ProactorEventLoop())
+        #     asyncio.set_event_loop(asyncio.ProactorEventLoop())\
         asyncio.run(start_daemon()) 
     else:
         parser.print_help()
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        logging.exception(e)
