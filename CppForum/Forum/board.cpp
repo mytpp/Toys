@@ -22,7 +22,7 @@ Post& Board::AddPost(const QString &title, const QString &content){
     //add post to db
     auto& storage = ForumStorage::GetStorage(ForumStorage::POSTS);
     QVector<QString> record;
-    const auto& id = QString().setNum(storage.NextId());
+    auto id        = QString().setNum(storage.NextId());
     auto& userId   = User::Get()->Id();
     auto& userName = User::Get()->Name();
     auto  now      = QDate::currentDate();
