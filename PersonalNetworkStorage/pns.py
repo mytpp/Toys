@@ -134,7 +134,7 @@ async def load_path(root, logical_root=None, cursor=None,
     else:
         path_list = [root]
     for path in path_list:
-        if is_tracker: # this is tracker
+        if is_tracker: # this daemon has the meta database
             logging.info('loading ' + path)
             ctime_stamp = os.path.getctime(path)
             mtime_stamp = os.path.getmtime(path)
@@ -150,7 +150,7 @@ async def load_path(root, logical_root=None, cursor=None,
                 config['ip'] + ':' + config['port'], config['name'])
             )
             await metaDB.commit()
-        else:  # this is agent
+        else:  # this side don't have the meta database
             if logical_root:
                 logical_path = logical_root + os.path.split(path)[1]
                 cmd = 'ln ' + root_to_physical(path, in_default_root) + ' ' + logical_path
@@ -180,14 +180,44 @@ async def load_path(root, logical_root=None, cursor=None,
 
 async def update_db():
     global config, metaDB
+    path = config['root']
     if config['istracker']: # this is tracker
         cursor = await metaDB.cursor()
         await cursor.execute('delete from filesystem where host_addr = ?', 
                         (config['ip'] + ':' + config['port'],))
+        
+        # record root physical path
+        logging.info('loading ' + path)
+        ctime_stamp = os.path.getctime(path)
+        mtime_stamp = os.path.getmtime(path)
+        ctime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ctime_stamp))
+        mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime_stamp))
+        await cursor.execute('''
+            insert into filesystem
+            (physical_path, category, ctime, mtime, size, host_addr, host_name)
+            values  ('/', ?, ?, ?, ?, ?, ?)
+            ''', 
+            (os.path.isfile(path), ctime, mtime, os.path.getsize(path), 
+            config['ip'] + ':' + config['port'], config['name'])
+        )
+        await metaDB.commit()
+
         # insert physical paths in this host
         await load_path(config['root'] + '/', cursor=cursor)
         await cursor.close()
     else:
+        # ln root physical path
+        header = make_header('ln ' + root_to_physical(path), os.path.getsize(path))
+        reader, writer = await asyncio.open_connection(
+                        config['tracker_ip'], config['tracker_port'])
+        print(f'Send: {header!r}')
+        writer.write(header.encode('utf-8'))
+        await writer.drain()
+        if await get_error(reader, writer):
+            return
+        logging.info('Link ' + path + ' successfully')
+        writer.close()
+
         await load_path(config['root'] + '/', is_tracker=False)
 
 
@@ -263,7 +293,8 @@ async def echo_ln(src, dst, host_name, writer, size=0):
     else: # Record a single physical path with no logical path
         # Judge whether the path is dir by whether it ends with '/'
         is_file = not path.endswith('/')
-        path = path.rstrip('/')
+        if path != '/':
+            path = path.rstrip('/')
         await cursor.execute('''
             insert into filesystem
             (physical_path, category, ctime, mtime, size, host_addr, host_name)
@@ -350,7 +381,7 @@ async def echo_ls(dst, writer):
                 'size' : record[5],
                 'host' : record[6]  # ip and port
             }
-        file_list.append(item)
+            file_list.append(item)
     await cursor.close()
     await metaDB.commit()
     data = b'E: 200 OK\n\n' + json.dumps(file_list).encode('utf-8')
@@ -397,9 +428,13 @@ async def echo_rm(dst, writer):
     if dst[1] != '/': # logical path
         await cursor.execute('select physical_path from filesystem where logical_path = ?',
                         (dst,))
-        if not (await cursor.fetchone())[0]:
-            await cursor.execute('delete from filesystem where logical_path = ?', (dst,))
-            logging.info('delete an unlinked logical path \'%s\''% dst)
+        physical_path = (await cursor.fetchone())[0]
+        if not physical_path or not physical_path.startswith('/'):
+            await cursor.execute('''
+                    delete from filesystem 
+                    where logical_path like ? or logical_path = ?
+                    ''', (dst + '/%%', dst))
+            logging.info('delete logical path \'%s\''% dst)
         else:
             await cursor.execute('''
                 update filesystem set logical_path = null
@@ -620,7 +655,8 @@ async def heartbeat():
         data = await reader.read()
         response = json.loads(data)
         daemons = [daemon['name'] for daemon in response]
-        logging.info(f'Living daemons: {daemons!r}')
+        now = time.time()
+        logging.info(f'Living daemons: {daemons!r}. time:{now!r}')
 
 
 async def listen_heartbeat():
@@ -939,7 +975,4 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception as e:
-        logging.exception(e)
+    main()
