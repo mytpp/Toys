@@ -43,21 +43,22 @@ def parse_config(file_name):
     with open(yaml_path, 'r', encoding='utf-8') as f:
         content = f.read()
     config = yaml.load(content)
-    this_ip = socket.gethostbyname(socket.gethostname())
     config['root'] = config['root'].rstrip('/')
     config['port'] = str(config['port'])
     tracker_addr = config['tracker'].split(':')
     config['tracker_ip'] = tracker_addr[0]
     config['tracker_port'] = tracker_addr[1]
+    # this_ip = socket.gethostbyname(socket.gethostname())
+    this_ip = '127.0.0.1'
     config['ip'] = this_ip
 
     logging.info('Load config successfully')
-    # print(config)
+    logging.debug(config)
 
 def parse_header(header_str):
     header_str = header_str.strip()
     fields = header_str.split('\n')
-    print(f"Received header:\n{fields!r}")
+    logging.debug(f"Received header:\n{fields!r}")
     header = {}
     for line in fields:
         word_list = line.split(': ')
@@ -99,7 +100,7 @@ async def send_file(src, dst, writer, loop):
         tr = writer.transport
         # 'size' and 'dst' is the reason why we need this header
         header = make_header('cp ' + src + ' ' + dst, size)
-        print(f'Send: {header!r}')
+        logging.debug(f'Send: {header!r}')
         writer.write(header.encode('utf-8'))
         await writer.drain()
         # send file
@@ -160,7 +161,7 @@ async def load_path(root, logical_root=None, cursor=None,
 
             reader, writer = await asyncio.open_connection(
                             config['tracker_ip'], config['tracker_port'])
-            print(f'Send: {header!r}')
+            logging.debug(f'Send: {header!r}')
             writer.write(header.encode('utf-8'))
             await writer.drain()
             if await get_error(reader, writer):
@@ -210,7 +211,7 @@ async def update_db():
         header = make_header('ln ' + root_to_physical(path), os.path.getsize(path))
         reader, writer = await asyncio.open_connection(
                         config['tracker_ip'], config['tracker_port'])
-        print(f'Send: {header!r}')
+        logging.debug(f'Send: {header!r}')
         writer.write(header.encode('utf-8'))
         await writer.drain()
         if await get_error(reader, writer):
@@ -272,6 +273,14 @@ def parse_physical_path(physical_path):
             path = '/' + path
     return location, path
 
+# path is a logical path
+async def parent_path_exists(path):
+    cursor = await metaDB.cursor()
+    await cursor.execute('select count(*) from filesystem where logical_path = ?',
+                        (os.path.split(path)[0],))
+    if (await cursor.fetchone())[0] == 0:
+        return False
+    return True
 
 # When initiate a physical root path for a new started daemon, 'dst' is None.
 # 'src' is like '//ip:port/local/path'.
@@ -283,13 +292,17 @@ async def echo_ln(src, dst, host_name, writer, size=0):
     location, path = parse_physical_path(src)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    if dst: 
+    if dst: # link a physical path to a logical path
         dst.rstrip('/')
-        await cursor.execute(
-            'insert into filesystem values (?, ?, 2, ?, ?, ?, ?, ?)',
-            (dst, path, now, now, size, location, host_name)
-        )
-        logging.info('link %s to %s successfully' % (src, dst))
+        if await parent_path_exists(dst):
+            await cursor.execute(
+                'insert into filesystem values (?, ?, 2, ?, ?, ?, ?, ?)',
+                (dst, path, now, now, size, location, host_name)
+            )
+            logging.info('link %s to %s successfully' % (src, dst))
+        else:
+            writer.write(b'E: 403 Parent Path Doesn\'t Exist\n\n')
+            await writer.drain()
     else: # Record a single physical path with no logical path
         # Judge whether the path is dir by whether it ends with '/'
         is_file = not path.endswith('/')
@@ -385,7 +398,7 @@ async def echo_ls(dst, writer):
     await cursor.close()
     await metaDB.commit()
     data = b'E: 200 OK\n\n' + json.dumps(file_list).encode('utf-8')
-    # logging.info(data)
+    logging.debug(data)
     writer.write(data) # need to add 'L' field in header?
     writer.write_eof()
     await writer.drain()
@@ -397,22 +410,26 @@ async def echo_md(dst, writer):
     cursor = await metaDB.cursor()
 
     dst.rstrip('/')
-    await cursor.execute('select count(*) from filesystem where logical_path = ?', 
-                    (dst,))
-    if (await cursor.fetchone())[0] == 0: 
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        await cursor.execute('''
-            insert into filesystem
-            (logical_path, category, ctime, mtime, size)
-            values (?, 2, ?, ?, 0)
-            ''', (dst, now, now)
-        )
-        await metaDB.commit()
-        writer.write(b'E: 200 OK\n\n')
+    if not (await parent_path_exists(dst)):
+        writer.write(b'E: 403 Parent Path Doesn\'t Exist\n\n')
         await writer.drain()
-    else: # error
-        writer.write(b'E: 406 Path Already Exists\n\n')
-        await writer.drain()
+    else:
+        await cursor.execute('select count(*) from filesystem where logical_path = ?', 
+                        (dst,))
+        if (await cursor.fetchone())[0] == 0: 
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            await cursor.execute('''
+                insert into filesystem
+                (logical_path, category, ctime, mtime, size)
+                values (?, 2, ?, ?, 0)
+                ''', (dst, now, now)
+            )
+            await metaDB.commit()
+            writer.write(b'E: 200 OK\n\n')
+            await writer.drain()
+        else: # error
+            writer.write(b'E: 403 Path Already Exists\n\n')
+            await writer.drain()
     await cursor.close()
 
 
@@ -478,7 +495,7 @@ async def echo_cp(src, dst, reader, writer, size=0):
             await send_file(src_path, dst_path, writer, loop)
             if await get_error(reader, writer):
                 return
-            print('Send file successfully!')
+            logging.info('Send file successfully!')
         else:
             writer.write(b'E: 404 File Not Found')
             await writer.drain()
@@ -518,7 +535,7 @@ async def echo_cp(src, dst, reader, writer, size=0):
                     writer.write(b'E: 400 No Length Field\n\n')
                     await writer.drain()
         else: 
-            writer.write(b'E: 406 File Already Exists\n\n')
+            writer.write(b'E: 403 File Already Exists\n\n')
             await writer.drain()
 
 
@@ -548,7 +565,7 @@ async def echo_mv(src, dst, reader, writer, size=0):
 
 
 async def echo_illegal_command(writer):
-    logging.info('Reciive illegal command')
+    logging.warning('Reciive illegal command')
     writer.write(b'E: 400 Illegal Command\n\n')
     await writer.drain()
 
@@ -635,7 +652,6 @@ async def echo_request(reader, writer):
         await echo_illegal_command(writer)
         return
 
-    logging.info('Finish Echoing client.')
     logging.info('Continue serving...')
 
 
@@ -693,7 +709,7 @@ async def start_daemon():
     server = await asyncio.start_server(
         echo_request, config['ip'], config['port'])
     addr = server.sockets[0].getsockname()
-    print(f'Serving on {addr}')
+    logging.info(f'Serving on {addr}')
     async with server:
         await server.serve_forever()
 
@@ -733,14 +749,14 @@ def extract_local_path_from(path):
 async def ln(src, dst):
     # if not dst: # link a single physical path
     if not os.path.exists(src):
-        print('src does not exist')
+        logging.warning('src does not exist')
         return
     
     reader, writer = await asyncio.open_connection(
                     config['tracker_ip'], config['tracker_port'])
     cmd = 'ln ' + root_to_physical(src.rstrip('/'), in_default_root=False) + ' ' + dst.rstrip('/')
     header = make_header(cmd, os.path.getsize(src))
-    print(f'Send: {header!r}')
+    logging.debug(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
     await writer.drain()
     if await get_error(reader, writer):
@@ -757,7 +773,7 @@ async def ls(dst):
     reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
     header = make_header('ls ' + dst)
-    print(f'Send: {header!r}')
+    logging.debug(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
     await writer.drain()
 
@@ -767,7 +783,7 @@ async def ls(dst):
     # get json data
     data = await reader.read()
     response = json.loads(data)
-    print(response)
+    logging.info(response)
     writer.close()
 
 
@@ -775,13 +791,13 @@ async def md(dst):
     reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
     header = make_header('md ' + dst)
-    print(f'Send: {header!r}')
+    logging.debug(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
     await writer.drain()
     
     if await get_error(reader, writer):
         return
-    print('Make directory successfully')
+    logging.info('Make directory successfully')
     writer.close()
 
 
@@ -789,13 +805,13 @@ async def rm(dst):
     reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
     header = make_header('rm ' + dst)
-    print(f'Send: {header!r}')
+    logging.debug(f'Send: {header!r}')
     writer.write(header.encode('utf-8'))
     await writer.drain()
     
     if await get_error(reader, writer):
         return
-    print('Remove successfully')
+    logging.info('Remove successfully')
     writer.close()
 
 
@@ -805,12 +821,12 @@ async def cp(src, dst, delete_src=False):
     src_is_here = path_in_this_host(src)
     dst_is_here = path_in_this_host(dst)
     if not src_is_here and not dst_is_here:
-        print("Either src or dst should be in this host!")
+        logging.warning("Either src or dst should be in this host!")
     elif src_is_here and dst_is_here: 
         # use local filesystem
         src_path = extract_local_path_from(src)
         if not os.path.exists(src_path):
-            print('src doesn\'t exist!')
+            logging.warning('src doesn\'t exist!')
             return
         dst_path = extract_local_path_from(dst)
         if delete_src:
@@ -821,7 +837,7 @@ async def cp(src, dst, delete_src=False):
     elif src_is_here: # this is sending side
         src_path = extract_local_path_from(src)
         if not os.path.exists(src_path):
-            print('src doesn\'t exist!')
+            logging.warning('src doesn\'t exist!')
             return
                 
         # try to get dst ip and port
@@ -829,7 +845,7 @@ async def cp(src, dst, delete_src=False):
             config['tracker_ip'], config['tracker_port'])
         parent = dst[0: dst.rfind('/')]
         header = make_header('ls ' + parent)
-        print(f'Send: {header!r}')
+        logging.debug(f'Send: {header!r}')
         writer.write(header.encode('utf-8'))
         await writer.drain()
         if await get_error(reader, writer):
@@ -863,7 +879,7 @@ async def cp(src, dst, delete_src=False):
         reader, writer = await asyncio.open_connection(
             config['tracker_ip'], config['tracker_port'])
         header = make_header('ls ' + src)
-        print(f'Send: {header!r}')
+        logging.debug(f'Send: {header!r}')
         writer.write(header.encode('utf-8'))
         await writer.drain()
         if await get_error(reader, writer):
@@ -886,7 +902,7 @@ async def cp(src, dst, delete_src=False):
             header = make_header('mv ' + src_path + ' ' + dst_path)
         else:
             header = make_header('cp ' + src_path + ' ' + dst_path)
-        print(f'Send: {header!r}')
+        logging.debug(f'Send: {header!r}')
         writer.write(header.encode('utf-8'))
         await writer.drain()
 
@@ -894,16 +910,16 @@ async def cp(src, dst, delete_src=False):
         rec_header = await reader.readuntil(b'\n\n')
         header = parse_header(rec_header.decode('utf-8'))
         if 'E' in header and header['E'].split(' ', 1)[0] != '200':
-            logging.info(header['E'])
+            logging.error(header['E'])
             writer.close()
             return
         if not 'L' in header:
-            logging.info('No length field detcted.')
+            logging.warning('No length field detcted.')
             writer.close()
             return
         size = int(header['L'])
         if size < 0:
-            logging.info('Illegal length field.')
+            logging.warning('Illegal length field.')
             writer.close()
             return
         with open(dst_path, 'wb') as f:
@@ -938,7 +954,7 @@ async def do_command(cmd, *args):
     elif cmd == 'rm':
         await rm(*args)
     else:
-        print('Unknown Command')
+        logging.warning('Unknown Command')
 
 
 #-----------------------------------Command Parser------------------------------------#
@@ -957,11 +973,11 @@ def main():
     if args.config:
         parse_config(args.config)
     else:
-        print('No config file detected!')
+        logging.warning('No config file detected!')
 
     if args.mode == 'shell':
         if not args.cmd:
-            print('Please enter a command')
+            logging.info('Please enter a command')
         else:
             asyncio.run(do_command(*(args.cmd)))
     elif args.mode == 'daemon':
