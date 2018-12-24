@@ -273,11 +273,19 @@ def parse_physical_path(physical_path):
             path = '/' + path
     return location, path
 
-# path is a logical path
+# 'path' is a logical path
 async def parent_path_exists(path):
     cursor = await metaDB.cursor()
     await cursor.execute('select count(*) from filesystem where logical_path = ?',
                         (os.path.split(path)[0],))
+    if (await cursor.fetchone())[0] == 0:
+        return False
+    return True
+
+async def path_exists(path):
+    cursor = await metaDB.cursor()
+    await cursor.execute('select count(*) from filesystem where logical_path = ?',
+                        (path,))
     if (await cursor.fetchone())[0] == 0:
         return False
     return True
@@ -294,15 +302,18 @@ async def echo_ln(src, dst, host_name, writer, size=0):
 
     if dst: # link a physical path to a logical path
         dst.rstrip('/')
-        if await parent_path_exists(dst):
+        if not (await parent_path_exists(dst)):
+            writer.write(b'E: 403 Parent Path Doesn\'t Exist\n\n')
+            await writer.drain()
+        elif await path_exists(dst):
+            writer.write(b'E: 403 Path Already Exist\n\n')
+            await writer.drain()
+        else:
             await cursor.execute(
                 'insert into filesystem values (?, ?, 2, ?, ?, ?, ?, ?)',
                 (dst, path, now, now, size, location, host_name)
             )
             logging.info('link %s to %s successfully' % (src, dst))
-        else:
-            writer.write(b'E: 403 Parent Path Doesn\'t Exist\n\n')
-            await writer.drain()
     else: # Record a single physical path with no logical path
         # Judge whether the path is dir by whether it ends with '/'
         is_file = not path.endswith('/')
@@ -413,23 +424,20 @@ async def echo_md(dst, writer):
     if not (await parent_path_exists(dst)):
         writer.write(b'E: 403 Parent Path Doesn\'t Exist\n\n')
         await writer.drain()
+    elif await path_exists(dst):
+        writer.write(b'E: 403 Path Already Exist\n\n')
+        await writer.drain()
     else:
-        await cursor.execute('select count(*) from filesystem where logical_path = ?', 
-                        (dst,))
-        if (await cursor.fetchone())[0] == 0: 
-            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            await cursor.execute('''
-                insert into filesystem
-                (logical_path, category, ctime, mtime, size)
-                values (?, 2, ?, ?, 0)
-                ''', (dst, now, now)
-            )
-            await metaDB.commit()
-            writer.write(b'E: 200 OK\n\n')
-            await writer.drain()
-        else: # error
-            writer.write(b'E: 403 Path Already Exists\n\n')
-            await writer.drain()
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        await cursor.execute('''
+            insert into filesystem
+            (logical_path, category, ctime, mtime, size)
+            values (?, 2, ?, ?, 0)
+            ''', (dst, now, now)
+        )
+        await metaDB.commit()
+        writer.write(b'E: 200 OK\n\n')
+        await writer.drain()
     await cursor.close()
 
 
