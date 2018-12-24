@@ -3,9 +3,9 @@
 
 PostsStorage::PostsStorage()
 {
-    query.exec("select * from posts");
-    query.last();
-    nextId = query.at() + 1;
+    query.exec("select max(id) from posts");
+    query.next();
+    nextId = query.value(0).toInt() + 1;
 }
 
 ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
