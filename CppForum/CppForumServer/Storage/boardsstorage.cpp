@@ -8,7 +8,7 @@ BoardsStorage::BoardsStorage()
 
 ForumStorage& BoardsStorage::operator <<(QVector<QString>& record) {
     if(record.size() != 2){
-        qDebug()<<"A board record must have 2 fields";
+        qInfo()<<"A board record must have 2 fields";
         return ForumStorage::GetNullValue();
     }
 
@@ -18,9 +18,9 @@ ForumStorage& BoardsStorage::operator <<(QVector<QString>& record) {
 
     bool success = query.exec();
     if(success) {
-        qDebug()<<"insert into boards table successfully";
+        qInfo()<<"insert into boards table successfully";
     } else {
-        qDebug()<<"inserting into boards table failed";
+        qInfo()<<"inserting into boards table failed";
         return ForumStorage::GetNullValue();
     }
 
@@ -59,10 +59,10 @@ bool BoardsStorage::UpdateRecord(
     query.bindValue(0, newVal.isEmpty() ? QVariant() : newVal);
     query.bindValue(1, id);
     if(!query.exec()){
-        qDebug()<<"update boards where name="<<id<<"failed";
+        qInfo()<<"update boards where name="<<id<<"failed";
         return false;
     }
-    qDebug()<<"update boards storage successfully";
+    qInfo()<<"update boards storage successfully";
     return true;
 }
 

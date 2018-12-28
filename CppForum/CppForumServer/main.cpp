@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     db.setPassword(QObject::tr("mytpp"));
     db.open();
     if(first_initiate)
-        qDebug()<<"InitiateStorage: "
+        qInfo()<<"InitiateStorage: "
                <<ForumStorage::InitiateStorage();
 
     Forum::SetExistUsers();

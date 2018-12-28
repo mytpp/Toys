@@ -9,7 +9,7 @@ ForumServer::ForumServer(int port, QObject *parent)
     :QTcpServer(parent)
 {
     listen(QHostAddress::AnyIPv4, port);
-    qDebug()<<"Listening at "<<port<<"...";
+    qInfo()<<"Listening at "<<port<<"...";
 }
 
 void ForumServer::incomingConnection(qintptr socketDescriptor) {
@@ -41,13 +41,13 @@ static inline ForumServer::Method MethodFromString(const QString& method) {
     if (method == "PUT")
         return ForumServer::PUT;
     if(method == "DELETE")
-        return ForumServer::DELTET;
+        return ForumServer::DELETE;
 }
 
 void ForumServer::EchoRequest() {
     auto sendingsock = qobject_cast<QTcpSocket*>(sender());
     QString header = QString::fromUtf8(sendingsock->readLine(1024));
-    qDebug()<<"Receive header: "<<header;
+    qInfo()<<"Receive header: "<<header;
     auto headerElements = header.trimmed().split(' ');
     auto sMethod   = headerElements[0];
     auto sResource = headerElements[1];
@@ -62,7 +62,7 @@ void ForumServer::EchoRequest() {
     } else if (sResource == "comment") {
         EchoCommentRequest(sendingsock, method);
     } else {
-        qDebug()<<"Unknown Resource Requested";
+        qInfo()<<"Unknown Resource Requested";
     }
 }
 
@@ -78,7 +78,7 @@ void ForumServer::EchoUserInfoRequest(QTcpSocket *sock, Method method) {
     if (method == GET) {
         // echo login
         auto params = ParseParams(sock);
-        qDebug()<<"params: "<<params;
+        qInfo()<<"params: "<<params;
         QString id = params["id"].toString();
         QString password = params["password"].toString();
 
@@ -89,18 +89,25 @@ void ForumServer::EchoUserInfoRequest(QTcpSocket *sock, Method method) {
         case infrastructure::ID_NOT_FOUNTD:
             statusLine = "401 Id_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Id_Not_Found' failed!";
+                qInfo()<<"Writing 'Id_Not_Found' failed!";
             }
             return;
         case infrastructure::WRONG_PASSWORD:
             statusLine = "401 Wrong_Password\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Wrong_Password' failed!";
+                qInfo()<<"Writing 'Wrong_Password' failed!";
+            }
+            return;
+        case infrastructure::ALREADY_ONLINE:
+            statusLine = "401 Already_Online\n\n";
+            if(sock->write(statusLine.toUtf8()) == -1) {
+                qInfo()<<"Writing 'Already_Online' failed!";
             }
             return;
         default:
             break;
         }
+        qInfo()<<"User "<<id<<" logs in.";
 
         QVariantMap response;
         response["status"] = static_cast<int>(result.status);
@@ -109,7 +116,7 @@ void ForumServer::EchoUserInfoRequest(QTcpSocket *sock, Method method) {
         auto data = statusLine.toUtf8() +
                 QJsonDocument::fromVariant(response).toJson(QJsonDocument::Compact);
         if(sock->write(data) == -1) {
-            qDebug()<<"Writing login response failed!";
+            qInfo()<<"Writing login response failed!";
         }
     } else if (method == PUT) {
         // set or dismiss moderator
@@ -126,7 +133,7 @@ void ForumServer::EchoUserInfoRequest(QTcpSocket *sock, Method method) {
         } else if (status == infrastructure::COMMON_USER) {
             success = Forum::Get().DismissModerator(board);
         } else {
-            qDebug()<<"Unknown user status";
+            qInfo()<<"Unknown user status";
         }
 
         if(success)
@@ -134,12 +141,26 @@ void ForumServer::EchoUserInfoRequest(QTcpSocket *sock, Method method) {
         else
             statusLine = "404 Not_Found\n\n";
         if(sock->write(statusLine.toUtf8()) == -1) {
-            qDebug()<<"Writing (assign|dismiss)moderator response failed!";
+            qInfo()<<"Writing (assign|dismiss)moderator response failed!";
+        }
+    } else if (method == DELETE){
+        // logout
+        auto params = ParseParams(sock);
+        QString id = params["id"].toString();
+
+        if(Forum::LogOut(id)){
+            statusLine = "200 OK\n\n";
+            qInfo()<<"User "<<id<<" logs out.";
+        } else {
+            statusLine = "401 Logout_Failed\n\n";
+        }
+        if(sock->write(statusLine.toUtf8()) == -1) {
+            qInfo()<<"Writing logout response failed!";
         }
     } else {
         statusLine = "405 Method_Not_Allowed\n\n";
         if(sock->write(statusLine.toUtf8()) == -1) {
-            qDebug()<<"Writing 'Method_Not_Allowed' failed!";
+            qInfo()<<"Writing 'Method_Not_Allowed' failed!";
         }
     }
 }
@@ -163,12 +184,12 @@ void ForumServer::EchoBoardRequest(QTcpSocket *sock, Method method) {
         auto data = statusLine.toUtf8() +
                 QJsonDocument::fromVariant(response).toJson(QJsonDocument::Compact);
         if(sock->write(data) == -1) {
-            qDebug()<<"Writing GET board response failed!";
+            qInfo()<<"Writing GET board response failed!";
         }
     } else {
         statusLine = "405 Method_Not_Allowed\n\n";
         if(sock->write(statusLine.toUtf8()) == -1) {
-            qDebug()<<"Writing 'Method_Not_Allowed' failed!";
+            qInfo()<<"Writing 'Method_Not_Allowed' failed!";
         }
     }
 }
@@ -178,13 +199,13 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
     if (method == GET) {
         // get posts under a board
         auto params = ParseParams(sock);
-        qDebug()<<"params: "<<params;
+        qInfo()<<"params: "<<params;
         QString boardName = params["board"].toString();
         auto board = Forum::Get().GetBoardByName(boardName);
         if (!board) {
             statusLine = "404 Board_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Board_Not_Found' failed!";
+                qInfo()<<"Writing 'Board_Not_Found' failed!";
             }
             return;
         }
@@ -208,12 +229,12 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
         auto data = statusLine.toUtf8() +
                 QJsonDocument::fromVariant(response).toJson(QJsonDocument::Compact);
         if(sock->write(data) == -1) {
-            qDebug()<<"Writing GET post response failed!";
+            qInfo()<<"Writing GET post response failed!";
         }
     } else if (method == POST) {
         //post a post under a board
         auto params = ParseParams(sock);
-        qDebug()<<"params: "<<params;
+        qInfo()<<"params: "<<params;
         QString boardName = params["board"].toString();
         QString userId = params["user"].toString();
         QString title = params["title"].toString();
@@ -224,7 +245,7 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
         if (!board) {
             statusLine = "404 Board_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Board_Not_Found' failed!";
+                qInfo()<<"Writing 'Board_Not_Found' failed!";
             }
             return;
         }
@@ -233,7 +254,7 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
         if(!success) {
             statusLine = "403 Add_Post_Failed\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Add_Post_Failed' failed!";
+                qInfo()<<"Writing 'Add_Post_Failed' failed!";
             }
             return;
         }
@@ -244,12 +265,12 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
         auto data = statusLine.toUtf8() +
                 QJsonDocument::fromVariant(response).toJson(QJsonDocument::Compact);
         if(sock->write(data) == -1) {
-            qDebug()<<"Writing Post post response failed!";
+            qInfo()<<"Writing Post post response failed!";
         }
-    } else if (method == DELTET) {
+    } else if (method == DELETE) {
         //delete a post
         auto params = ParseParams(sock);
-        qDebug()<<"params: "<<params;
+        qInfo()<<"params: "<<params;
         QString userId = params["user"].toString();
         QString postId = params["post"].toString();
 
@@ -257,19 +278,19 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
         if(!success) {
             statusLine = "404 Delete_Post_Failed\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Delete_Post_Failed' failed!";
+                qInfo()<<"Writing 'Delete_Post_Failed' failed!";
             }
             return;
         }
 
         statusLine = "200 OK\n\n";
         if(sock->write(statusLine.toUtf8()) == -1) {
-            qDebug()<<"Writing DELETE post response failed!";
+            qInfo()<<"Writing DELETE post response failed!";
         }
     } else {
         statusLine = "405 Method_Not_Allowed\n\n";
         if(sock->write(statusLine.toUtf8()) == -1) {
-            qDebug()<<"Writing 'Method_Not_Allowed' failed!";
+            qInfo()<<"Writing 'Method_Not_Allowed' failed!";
         }
     }
 }
@@ -279,14 +300,14 @@ void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
     if (method == GET) {
         // get comments under a post
         auto params = ParseParams(sock);
-        qDebug()<<"params: "<<params;
+        qInfo()<<"params: "<<params;
         QString postId = params["post"].toString();
 
         auto comments = Forum::Get().GetComments(postId);
         if(!comments) {
             statusLine = "404 Post_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Post_Not_Found' failed!";
+                qInfo()<<"Writing 'Post_Not_Found' failed!";
             }
             return;
         }
@@ -305,12 +326,12 @@ void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
         auto data = statusLine.toUtf8() +
                 QJsonDocument::fromVariant(response).toJson(QJsonDocument::Compact);
         if(sock->write(data) == -1) {
-            qDebug()<<"Writing GET comment response failed!";
+            qInfo()<<"Writing GET comment response failed!";
         }
     } else if (method == POST) {
         // publish a comment under a post
         auto params = ParseParams(sock);
-        qDebug()<<"params: "<<params;
+        qInfo()<<"params: "<<params;
         QString userId = params["user"].toString();
         QString postId = params["post"].toString();
         QString boardName = params["board"].toString();
@@ -321,7 +342,7 @@ void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
         if (!board) {
             statusLine = "404 Board_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Board_Not_Found' failed!";
+                qInfo()<<"Writing 'Board_Not_Found' failed!";
             }
             return;
         }
@@ -331,7 +352,7 @@ void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
         if (it == posts.end()) {
             statusLine = "404 Post_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Post_Not_Found' failed!";
+                qInfo()<<"Writing 'Post_Not_Found' failed!";
             }
             return;
         }
@@ -340,14 +361,14 @@ void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
         if(!success) {
             statusLine = "403 Add_Comment_Failed\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
-                qDebug()<<"Writing 'Add_Comment_Failed' failed!";
+                qInfo()<<"Writing 'Add_Comment_Failed' failed!";
             }
             return;
         }
 
         statusLine = "200 OK\n\n";
         if(sock->write(statusLine.toUtf8()) == -1) {
-            qDebug()<<"Writing POST comment response failed!";
+            qInfo()<<"Writing POST comment response failed!";
         }
     }
 }

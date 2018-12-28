@@ -8,7 +8,7 @@ UserInfoStorage::UserInfoStorage()
 
 ForumStorage& UserInfoStorage::operator <<(QVector<QString>& record) {
     if(record.size() != 5){
-        qDebug()<<"A userinfo record must have 5 fields";
+        qInfo()<<"A userinfo record must have 5 fields";
         return ForumStorage::GetNullValue();
     }
 
@@ -21,9 +21,9 @@ ForumStorage& UserInfoStorage::operator <<(QVector<QString>& record) {
 
     bool success = query.exec();
     if(success) {
-        qDebug()<<"insert into userinfo table successfully";
+        qInfo()<<"insert into userinfo table successfully";
     } else {
-        qDebug()<<"inserting into userinfo table failed";
+        qInfo()<<"inserting into userinfo table failed";
         return ForumStorage::GetNullValue();
     }
 
@@ -38,7 +38,7 @@ ForumStorage& UserInfoStorage::operator >>(QVector<QString>& record) {
         dataAvailable = query.exec(
             "select id, status, postsCount, name, password from userinfo"
         );
-        //qDebug()<<"query size: "<<query.numRowsAffected(); -> 0
+        //qInfo()<<"query size: "<<query.numRowsAffected(); -> 0
         query.next();
     }
 
@@ -73,10 +73,10 @@ bool UserInfoStorage::UpdateRecord(
     query.bindValue(0, newVal);
     query.bindValue(1, id);
     if(!query.exec()){
-        qDebug()<<"update userinfo where id="<<id<<"failed";
+        qInfo()<<"update userinfo where id="<<id<<"failed";
         return false;
     }
-    qDebug()<<"update userinfo storage successfully";
+    qInfo()<<"update userinfo storage successfully";
     return true;
 }
 
@@ -84,10 +84,10 @@ bool UserInfoStorage::RemoveRecord(const QString &id) {
     query.prepare("delete from userinfo where id=?");
     query.addBindValue(id);
     if(!query.exec()){
-        qDebug()<<"delete from userinfo where id="<<id<<"failed";
+        qInfo()<<"delete from userinfo where id="<<id<<"failed";
         return false;
     }
-    qDebug()<<"delete from userinfo successfully";
+    qInfo()<<"delete from userinfo successfully";
     return true;
 }
 

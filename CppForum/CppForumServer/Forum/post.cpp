@@ -30,7 +30,7 @@ bool Post::AddComment(const QString &content,
           <<content
           <<QDate::currentDate().toString();
     if(!(storage<<record)) {
-        qDebug()<<"Add comment to db failed";
+        qInfo()<<"Add comment to db failed";
         return false;
     }
 

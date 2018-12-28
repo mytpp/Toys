@@ -41,7 +41,7 @@ Forum::GetBoardByName(const QString& name) {
         return board.Name() == name;
     });
     if(it == boards.end())
-        qDebug()<<"Unknown board name.";
+        qInfo()<<"Unknown board name.";
 
     return it == boards.end() ?
            std::nullopt :
@@ -67,7 +67,7 @@ bool Forum::AssignModerator(const QString& id, const QString& board) {
     auto targetBoard = std::find_if(boards.begin(), boards.end(),
                        [&name=board](auto& board){ return name==board.Name();});
     if(targetBoard == boards.end()) {
-        qDebug()<<"Board not in memory!";
+        qInfo()<<"Board not in memory!";
         return false;
     }
     targetBoard->SetModerator(id);
@@ -78,7 +78,7 @@ bool Forum::DismissModerator(const QString& board) {
     auto targetBoard = std::find_if(boards.begin(), boards.end(),
                        [&name=board](auto& board){ return name==board.Name();});
     if(targetBoard == boards.end()) {
-        qDebug()<<"Board not in memory!";
+        qInfo()<<"Board not in memory!";
         return false;
     }
     auto id = targetBoard->ModeratorId();
@@ -137,7 +137,7 @@ Forum::GetComments(const QString &id) {
             return it->second.Comments();
         }
     }
-    qDebug()<<"file:"<<__FILE__<<" line:"<<__LINE__<<"post not found";
+    qInfo()<<"file:"<<__FILE__<<" line:"<<__LINE__<<"post not found";
     return std::nullopt;
 }
 
@@ -151,12 +151,16 @@ infrastructure::Response Forum::Verify(QString id, QString password){
     auto it = users.find(id);
 
     if(it == users.end()) {                       //id not found
-        qDebug()<<"innotfound";
+        qInfo()<<"in not found";
         return { infrastructure::ID_NOT_FOUNTD };
     } else if(it->second.password != password) {  //wrong password
         return { infrastructure::WRONG_PASSWORD };
+    } else if(it->second.status != infrastructure::ANONYMOUS
+              && it->second.online == true) {
+        return {infrastructure::ALREADY_ONLINE };
     } else {                                      //passed verification
         auto& info = it->second;
+        it->second.online = true;
         return {
             infrastructure::SUCCESS,
             info.status,
@@ -164,6 +168,22 @@ infrastructure::Response Forum::Verify(QString id, QString password){
             info.name
         };
     } //end else
+}
+
+bool Forum::LogOut(QString id) {
+    auto it = users.find(id);
+
+    if(it == users.end()) {
+        qInfo()<<"in not found";
+        return false;
+    } else if (it->second.status == infrastructure::ANONYMOUS) {
+        return true;
+    } else if (it->second.online == false) {
+        return false;
+    } else {
+        it->second.online = false;
+        return true;
+    }
 }
 
 
@@ -198,7 +218,7 @@ bool Forum::SetPosts() {
                   record[5], birthday, record[1] }
             );
         else
-            qDebug()<<"Adding initial post failed";
+            qInfo()<<"Adding initial post failed";
 
         record.clear();
     }
@@ -249,7 +269,7 @@ void Forum::SetExistUsers(){
         QString  name      = record[3];
         QString  password  = record[4];
 
-        users.insert({id, {status, postCount, name, password}});
+        users.insert({id, {status, postCount, name, password, false}});
         record.clear();
     }
     if(users.empty())

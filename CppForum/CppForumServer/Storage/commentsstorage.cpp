@@ -10,7 +10,7 @@ CommentsStorage::CommentsStorage()
 
 ForumStorage& CommentsStorage::operator <<(QVector<QString>& record) {
     if(record.size() != 7){
-        qDebug()<<"A comment record must have 7 fields";
+        qInfo()<<"A comment record must have 7 fields";
         return ForumStorage::GetNullValue();
     }
 
@@ -25,9 +25,9 @@ ForumStorage& CommentsStorage::operator <<(QVector<QString>& record) {
 
     bool success = query.exec();
     if(success) {
-        qDebug()<<"insert into comments table successfully";
+        qInfo()<<"insert into comments table successfully";
     } else {
-        qDebug()<<"inserting into comments table failed";
+        qInfo()<<"inserting into comments table failed";
         return ForumStorage::GetNullValue();
     }
 

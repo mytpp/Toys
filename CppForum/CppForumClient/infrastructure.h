@@ -18,7 +18,8 @@ namespace infrastructure {
         SUCCESS = 0,
         ID_NOT_FOUNTD = 1,
         WRONG_PASSWORD = 2,
-        NETWORK_ERROR = 3,
+        ALREADY_ONLINE = 3,
+        NETWORK_ERROR = 4,
         UNKNOWN_ERROR
     };
 

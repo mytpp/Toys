@@ -26,6 +26,9 @@ bool User::LogIn(){
 }
 
 void User::Logout(){
+    if (!Forum::LogOut(this->Id())) {
+        throw std::runtime_error("logout failed");
+    }
     qDebug()<<"logout!";
     delete _user;
     Forum::Get().Hide();

@@ -10,7 +10,7 @@ PostsStorage::PostsStorage()
 
 ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
     if(record.size() != 7){
-        qDebug()<<"A post record must have 7 fields";
+        qInfo()<<"A post record must have 7 fields";
         return ForumStorage::GetNullValue();
     }
 
@@ -25,9 +25,9 @@ ForumStorage& PostsStorage::operator <<(QVector<QString>& record) {
 
     bool success = query.exec();
     if(success) {
-        qDebug()<<"insert into posts table successfully";
+        qInfo()<<"insert into posts table successfully";
     } else {
-        qDebug()<<"inserting into posts table failed";
+        qInfo()<<"inserting into posts table failed";
         return ForumStorage::GetNullValue();
     }
 
@@ -61,14 +61,14 @@ bool PostsStorage::RemoveRecord(const QString &id) {
     query.prepare("delete from comments where postid=?");
     query.addBindValue(id);
     if(!query.exec()){
-        qDebug()<<"removing comments from the deleting post failed";
+        qInfo()<<"removing comments from the deleting post failed";
         return false;
     }
 
     query.prepare("delete from posts where id=?");
     query.addBindValue(id);
     if(!query.exec()){
-        qDebug()<<"deleting post from db failed";
+        qInfo()<<"deleting post from db failed";
         return false;
     }
 

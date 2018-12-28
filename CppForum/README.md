@@ -13,9 +13,10 @@
 资源：user|board|post|comment
 
 json内容示例：
+
 |       |GET               |POST|PUT|DELETE
 -|-|-|-|-
-user    |{'id':'123', 'password':'...'}      ||{'admin':'id', 'id':'123', 'status':2, 'board':'C++17'}
+user    |{'id':'123', 'password':'...'}      ||{'admin':'id', 'id':'123', 'status':2, 'board':'C++17'}|{'id':'...'}
 board   |
 post    |{'board':'C++17'} |{'user':'id', 'board':'name' 'title':'..', 'content':'..'}||{'user':'id', 'post':'id'}
 comment |{'post':'id'}      |{'user':'id', 'board':'name', 'post':'id', 'content':'..'}

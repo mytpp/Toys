@@ -17,7 +17,8 @@ namespace infrastructure {
     {
         SUCCESS = 0,
         ID_NOT_FOUNTD = 1,
-        WRONG_PASSWORD = 2
+        WRONG_PASSWORD = 2,
+        ALREADY_ONLINE = 3
     };
 
     struct Response final

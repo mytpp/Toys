@@ -229,7 +229,37 @@ infrastructure::Response Forum::Verify(QString id, QString password){
         return { infrastructure::ID_NOT_FOUNTD };
     } else if (message == "Wrong_Password") {
         return { infrastructure::WRONG_PASSWORD };
+    } else if (message == "Already_Online") {
+        qDebug()<<"??";
+        return { infrastructure::ALREADY_ONLINE };
     }
     return { infrastructure::UNKNOWN_ERROR };
+}
+
+bool Forum::LogOut(QString id) {
+    network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
+    sock->connectToHost("127.0.0.1", network::port);
+
+    QByteArray request;
+    request = "DELETE user\n\n";
+    QVariantMap params;
+    params["id"] = id;
+    request += QJsonDocument::fromVariant(params).toJson(QJsonDocument::Compact);
+
+    if (sock->write(request) == -1) {
+        qDebug()<<"Writing logout request failed.";
+        return false;
+    }
+    if(!sock->waitForReadyRead()){
+        qDebug()<<"Can't get logout response.";
+        return false;
+    }
+
+    auto [code, message] = network::ParseStatusLine(sock->readLine(1024));
+    if (code == "200") {
+        sock->readLine(1024);              // read separator
+        return true;
+    }
+    return false;
 }
 

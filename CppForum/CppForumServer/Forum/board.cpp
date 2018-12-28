@@ -45,7 +45,7 @@ std::pair<bool, QString> Board::AddPost(const QString &title, const QString &con
         );
         return {true, id};
     }
-    qDebug()<<"file:"<<__FILE__<<" line:"<<__LINE__<<" Add post failed";
+    qInfo()<<"file:"<<__FILE__<<" line:"<<__LINE__<<" Add post failed";
     return {false, ""};
 }
 

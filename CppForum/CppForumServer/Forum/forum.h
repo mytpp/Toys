@@ -19,6 +19,7 @@ private:
         uint16_t postCount;
         QString name;
         QString password; //need not posting back
+        bool online;      //record whether this user has loged in at client side
     };
 
 public:
@@ -45,6 +46,7 @@ public:
     /*-----------------------Static Method------------------------*/
     static Forum& Get();
     static infrastructure::Response Verify(QString id, QString password);
+    static bool LogOut(QString id);
     static QString SelectNameWhereIdEqualTo(QString id);
     static void SetExistUsers();
 

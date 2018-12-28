@@ -14,7 +14,7 @@ public:
         GET,
         POST,
         PUT,
-        DELTET
+        DELETE
     };
 
 public:

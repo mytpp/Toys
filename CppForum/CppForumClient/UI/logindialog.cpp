@@ -63,6 +63,9 @@ LoginDialog::LoginDialog(QWidget *parent)
         } else if (result == infrastructure::NETWORK_ERROR) {
             QMessageBox::warning(nullptr, tr("Error!"),
                          tr("NETWORK ERROR"), QMessageBox::Ok);
+        } else if (result == infrastructure::ALREADY_ONLINE) {
+            QMessageBox::warning(nullptr, tr("Error!"),
+                         tr("REPEATEDLY LOGIN"), QMessageBox::Ok);
         }
     });
 

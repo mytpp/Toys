@@ -33,7 +33,7 @@ bool ForumStorage::InitiateStorage() {
 
 bool ForumStorage::InitiateUserInfo() {
     QSqlQuery query;
-qDebug()<<"here";
+qInfo()<<"here";
     //create userinfo table
     bool success = query.exec(
                "create table if not exists userinfo ("
@@ -44,9 +44,9 @@ qDebug()<<"here";
                "password   varchar)"
             );
     if(success) {
-        qDebug()<<"create userinfo table successfully";
+        qInfo()<<"create userinfo table successfully";
     } else{
-        qDebug()<<"userinfo table failed";
+        qInfo()<<"userinfo table failed";
         return false;
     }
 
@@ -115,9 +115,9 @@ bool ForumStorage::InitiateBoards() {
                 "moderator varchar)"
              );
     if(success) {
-        qDebug()<<"create boards table successfully";
+        qInfo()<<"create boards table successfully";
     } else{
-        qDebug()<<"boards table failed";
+        qInfo()<<"boards table failed";
         return false;
     }
 
@@ -149,9 +149,9 @@ bool ForumStorage::InitiatePosts() {
                 "birthday varchar)"
              );
     if(success) {
-        qDebug()<<"create posts table successfully";
+        qInfo()<<"create posts table successfully";
     } else{
-        qDebug()<<"posts table failed";
+        qInfo()<<"posts table failed";
         return false;
     }
 
@@ -220,9 +220,9 @@ bool ForumStorage::InitiateComments() {
                 "birthday varchar)"
              );
     if(success) {
-        qDebug()<<"create comments table successfully";
+        qInfo()<<"create comments table successfully";
     } else{
-        qDebug()<<"comments table failed";
+        qInfo()<<"comments table failed";
         return false;
     }
 
@@ -294,7 +294,7 @@ ForumStorage& ForumStorage::GetStorage(const Category category) {
     case POSTS   : return postsStorage;
     case COMMENTS: return commentsStorage;
     default:
-        qDebug()<<"Storage Not Found";
+        qInfo()<<"Storage Not Found";
         return GetNullValue();
     }
 }

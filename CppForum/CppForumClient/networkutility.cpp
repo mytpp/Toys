@@ -12,7 +12,7 @@ void sockDeleter(QTcpSocket *sock) {
 }
 
 std::pair<QString, QString> ParseStatusLine(QByteArray data) {
-    QString statusLine = QString::fromUtf8(data);
+    QString statusLine = QString::fromUtf8(data).trimmed();
     qDebug()<<"Receive status line: "<<statusLine;
     auto elements = statusLine.split(' ');
     return { elements[0], elements[1] };
