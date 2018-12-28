@@ -27,6 +27,9 @@ public slots:
     //This is for boardArea to refresh postArea (by signal).
     void RefreshPostArea();
 
+protected:
+    virtual void closeEvent(QCloseEvent *event) override;
+
 private:
     //bool elementsExist;
 

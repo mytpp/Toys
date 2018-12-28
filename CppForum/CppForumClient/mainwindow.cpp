@@ -2,6 +2,7 @@
 #include "Forum/forum.h"
 #include "UI/boardsarea.h"
 #include "forumui.h"
+#include <QMessageBox>
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -48,7 +49,6 @@ void MainWindow::Initiate() {
     vLayout->addWidget(infoBar);
     vLayout->addWidget(mainArea);
 
-    this->setAttribute(Qt::WA_DeleteOnClose);
     this->resize(800, 600);
     this->show();
 }
@@ -64,4 +64,11 @@ void MainWindow::RefreshPostArea() {
     mainArea->addWidget(scrollArea);
     //mainArea->setStretchFactor(0, 1);
     mainArea->setStretchFactor(1, 3);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    if(!Forum::LogOut())
+        QMessageBox::warning(nullptr, tr("Error!"),
+                     tr("Logout Failed"), QMessageBox::Ok);
+    event->accept();
 }

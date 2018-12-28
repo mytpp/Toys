@@ -236,14 +236,14 @@ infrastructure::Response Forum::Verify(QString id, QString password){
     return { infrastructure::UNKNOWN_ERROR };
 }
 
-bool Forum::LogOut(QString id) {
+bool Forum::LogOut() {
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
 
     QByteArray request;
     request = "DELETE user\n\n";
     QVariantMap params;
-    params["id"] = id;
+    params["id"] = User::Get()->Id();
     request += QJsonDocument::fromVariant(params).toJson(QJsonDocument::Compact);
 
     if (sock->write(request) == -1) {

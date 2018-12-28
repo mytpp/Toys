@@ -26,7 +26,7 @@ bool User::LogIn(){
 }
 
 void User::Logout(){
-    if (!Forum::LogOut(this->Id())) {
+    if (!Forum::LogOut()) {
         throw std::runtime_error("logout failed");
     }
     qDebug()<<"logout!";

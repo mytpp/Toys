@@ -43,7 +43,7 @@ public:
     /*-----------------------Static Method------------------------*/
     static Forum& Get();
     static infrastructure::Response Verify(QString id, QString password);
-    static bool LogOut(QString id);
+    static bool LogOut();
 
 signals:
     void ReadyToDraw();
