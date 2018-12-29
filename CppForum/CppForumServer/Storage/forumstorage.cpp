@@ -33,7 +33,6 @@ bool ForumStorage::InitiateStorage() {
 
 bool ForumStorage::InitiateUserInfo() {
     QSqlQuery query;
-qInfo()<<"here";
     //create userinfo table
     bool success = query.exec(
                "create table if not exists userinfo ("

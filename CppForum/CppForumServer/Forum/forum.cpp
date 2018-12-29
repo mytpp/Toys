@@ -34,18 +34,27 @@ Forum::Forum()
 
 Forum::~Forum() {}
 
+const std::vector<std::pair<QString, QString>>
+Forum::GetBoards() const {
+    std::vector<std::pair<QString, QString>> boardInfo;
+    for(auto &board: boards) {
+        boardInfo.emplace_back(board->Name(), board->ModeratorId());
+    }
+    return boardInfo;
+}
+
 std::optional<std::reference_wrapper<Board>>
 Forum::GetBoardByName(const QString& name) {
     auto it = std::find_if(boards.begin(), boards.end(),
                  [&name](const auto& board){
-        return board.Name() == name;
+        return board->Name() == name;
     });
     if(it == boards.end())
         qInfo()<<"Unknown board name.";
 
     return it == boards.end() ?
            std::nullopt :
-           std::optional<std::reference_wrapper<Board>>(*it);
+           std::optional<std::reference_wrapper<Board>>(**it);
 }
 
 bool Forum::AssignModerator(const QString& id, const QString& board) {
@@ -65,23 +74,23 @@ bool Forum::AssignModerator(const QString& id, const QString& board) {
 
     it->second.status = infrastructure::MODERATOR;
     auto targetBoard = std::find_if(boards.begin(), boards.end(),
-                       [&name=board](auto& board){ return name==board.Name();});
+                       [&name=board](auto& board){ return name==board->Name();});
     if(targetBoard == boards.end()) {
         qInfo()<<"Board not in memory!";
         return false;
     }
-    targetBoard->SetModerator(id);
+    (*targetBoard)->SetModerator(id);
     return true;
 }
 
 bool Forum::DismissModerator(const QString& board) {
     auto targetBoard = std::find_if(boards.begin(), boards.end(),
-                       [&name=board](auto& board){ return name==board.Name();});
+                       [&name=board](auto& board){ return name==board->Name();});
     if(targetBoard == boards.end()) {
         qInfo()<<"Board not in memory!";
         return false;
     }
-    auto id = targetBoard->ModeratorId();
+    auto id = (*targetBoard)->ModeratorId();
     if(id.isEmpty())
         return false;
     auto it = users.find(id);
@@ -97,7 +106,7 @@ bool Forum::DismissModerator(const QString& board) {
         return false;
 
     it->second.status = infrastructure::COMMON_USER;
-    targetBoard->SetModerator(tr("")); //empty str means no moderator
+    (*targetBoard)->SetModerator(tr("")); //empty str means no moderator
     return true;
 }
 
@@ -105,6 +114,11 @@ bool Forum::IncPostCountOf(const QString &id) {
     auto it = users.find(id);
     if(it == users.end())
         return false;
+
+    auto& userStorage = ForumStorage::GetStorage(ForumStorage::USERINFO);
+    if(!userStorage.UpdateRecord(id, 2, QString().setNum(it->second.postCount+1)))
+        return false;
+
     it->second.postCount++;
     return true;
 }
@@ -113,6 +127,11 @@ bool Forum::DecPostCountOf(const QString &id) {
     auto it = users.find(id);
     if(it == users.end())
         return false;
+
+    auto& userStorage = ForumStorage::GetStorage(ForumStorage::USERINFO);
+    if(!userStorage.UpdateRecord(id, 2, QString().setNum(it->second.postCount-1)))
+        return false;
+
     it->second.postCount--;
     return true;
 }
@@ -120,7 +139,7 @@ bool Forum::DecPostCountOf(const QString &id) {
 bool Forum::DeletePost(const QString& id) {
     bool success = false;
     for(auto &board: boards) {
-        if(board.DeletePost(id)) {
+        if(board->DeletePost(id)) {
             success = true;
             break;
         }
@@ -128,10 +147,10 @@ bool Forum::DeletePost(const QString& id) {
     return success;
 }
 
-std::optional<std::reference_wrapper<const std::list<Comment>>>
+std::optional<const std::list<Comment>>
 Forum::GetComments(const QString &id) {
     for(auto &board: boards) {
-        auto &posts = board.GetPosts();
+        auto posts = board->GetPosts();
         auto it = posts.find(id);
         if(it != posts.end()) {
             return it->second.Comments();
@@ -163,7 +182,7 @@ infrastructure::Response Forum::Verify(QString id, QString password){
         it->second.online = true;
         return {
             infrastructure::SUCCESS,
-            info.status,
+            static_cast<infrastructure::Status>(info.status.load()),
             info.postCount,
             info.name
         };
@@ -190,10 +209,11 @@ bool Forum::LogOut(QString id) {
 bool Forum::SetBoards() {
     ForumStorage& storage = ForumStorage::GetStorage(ForumStorage::BOARDS);
     QVector<QString> record;
+    int i = 0;
     while (storage>>record) {
         //QString name      = record[0];
         //QString moderator = record[1];
-        boards.emplace_back(record[0], record[1]);
+        boards.emplace_back(std::make_unique<Board>(record[0], record[1]));
         record.clear();
     }
     return true;
@@ -211,9 +231,9 @@ bool Forum::SetPosts() {
 //        QString content  = record[5];
         QDate birthday = QDate::fromString(record[6]);
         auto p = std::find_if(boards.begin(), boards.end(),
-                     [&val = record[1]](auto& board) {return val==board.Name();});
+                     [&val = record[1]](auto& board) {return val==board->Name();});
         if(p != boards.end())
-            p->AddInitialPost(
+            (*p)->AddInitialPost(
                 { record[0], record[2], record[3], record[4],
                   record[5], birthday, record[1] }
             );
@@ -237,9 +257,9 @@ bool Forum::SetComments() {
 //        QString content  = record[5];
         QDate birthday = QDate::fromString(record[6]);
         auto p = std::find_if(boards.begin(), boards.end(),
-                     [&val = record[1]](auto& board) {return val==board.Name();});
+                     [&val = record[1]](auto& board) {return val==board->Name();});
         if(p != boards.end())
-            p->AddInitialComment(
+            (*p)->AddInitialComment(
                 { record[3], record[4], record[5], birthday},
                 record[2]
             );
@@ -251,6 +271,7 @@ bool Forum::SetComments() {
 
 
 QString Forum::SelectNameWhereIdEqualTo(QString id) {
+
     auto it = users.find(id);
     if(it == users.end()) {
         return "Unknown";
@@ -264,12 +285,20 @@ void Forum::SetExistUsers(){
     QVector<QString> record;
     while (storage>>record) {
         QString id = record[0];
-        auto status = static_cast<infrastructure::Status>(record[1].toInt());
-        uint16_t postCount = record[2].toInt();
+        uint8_t  status    = record[1].toInt();
+        uint32_t postCount = record[2].toInt();
         QString  name      = record[3];
         QString  password  = record[4];
 
-        users.insert({id, {status, postCount, name, password, false}});
+        users.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(id),
+                    std::forward_as_tuple(
+                          status,
+                          postCount,
+                          name,
+                          password,
+                          false)
+                     );
         record.clear();
     }
     if(users.empty())

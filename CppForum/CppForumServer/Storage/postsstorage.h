@@ -2,6 +2,7 @@
 #define POSTSSTORAGE_H
 
 #include "forumstorage.h"
+#include <atomic>
 
 class PostsStorage : public ForumStorage
 {
@@ -15,7 +16,8 @@ public:
     virtual int NextId() override { return nextId++; }
 
 private:
-    int nextId = 0;
+    //operation to abtain next post id must be atomic
+    std::atomic<int> nextId = 0;
 };
 
 #endif // POSTSSTORAGE_H

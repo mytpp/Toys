@@ -175,8 +175,8 @@ void ForumServer::EchoBoardRequest(QTcpSocket *sock, Method method) {
         std::for_each(boards.begin(), boards.end(),
                       [&response](const auto& board){
             QVariantMap boardInfo;
-            boardInfo["name"] = board.Name();
-            boardInfo["moderator"] = board.ModeratorId();
+            boardInfo["name"] = board.first;
+            boardInfo["moderator"] = board.second;
             response.append(boardInfo);
         });
 
@@ -211,11 +211,11 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
         }
 
         //pack posts list
-        auto& posts = board->get().GetPosts();
+        auto posts = board->get().GetPosts();
         QVariantList response;
         for(auto& [id, post]: posts) {
             QVariantMap postInfo;
-            postInfo["id"] = id;
+            postInfo["id"] = post.Id();
             postInfo["author"] = post.Poster();
             postInfo["authorId"] = post.AuthorId();
             postInfo["title"] = post.Title();
@@ -313,7 +313,7 @@ void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
         }
 
         QVariantList response;
-        for(auto &comment: comments->get()) {
+        for(auto &comment: *comments) {
             QVariantMap commentInfo;
             commentInfo["author"] = comment.Author();
             commentInfo["authorId"] = comment.AuthorId();
@@ -347,21 +347,11 @@ void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
             return;
         }
 
-        auto &posts = board->get().GetPosts();
-        auto it = posts.find(postId);
-        if (it == posts.end()) {
+        bool success = board->get().AddComment(postId, content, userName, userId);
+        if (!success) {
             statusLine = "404 Post_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
                 qInfo()<<"Writing 'Post_Not_Found' failed!";
-            }
-            return;
-        }
-
-        bool success = it->second.AddComment(content, userName, userId);
-        if(!success) {
-            statusLine = "403 Add_Comment_Failed\n\n";
-            if(sock->write(statusLine.toUtf8()) == -1) {
-                qInfo()<<"Writing 'Add_Comment_Failed' failed!";
             }
             return;
         }

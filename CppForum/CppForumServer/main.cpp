@@ -21,7 +21,15 @@ int main(int argc, char *argv[])
         qInfo()<<"InitiateStorage: "
                <<ForumStorage::InitiateStorage();
 
-    Forum::SetExistUsers();
+    try {
+        Forum::SetExistUsers();
+    } catch (...) {
+        qInfo()<<"Loading userinfo failed!";
+        qInfo()<<"Start server failed!";
+        qInfo()<<"Check if there exists a database, "
+                 "or make 'first_initiate' (main.cpp) true to initiate the database.";
+        return 0;
+    }
 
     ForumServer server(9999);
 

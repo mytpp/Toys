@@ -3,8 +3,10 @@
 
 #include <vector>
 #include <unordered_map>
+#include <memory>
 #include <QString>
 #include <optional>
+#include <atomic>
 #include "infrastructure.h"
 #include "board.h"
 
@@ -15,18 +17,28 @@ class Forum final: public QObject
 private:
     struct UserInfo
     {
-        infrastructure::Status status;
-        uint16_t postCount;
+        //as std::atomic<bool> is non-copyable, we need a constructor
+        UserInfo(uint8_t status, uint32_t postCount,
+                 QString name, QString password, bool online)
+            :status(status)
+            ,postCount(postCount)
+            ,name(name)
+            ,password(password)
+            ,online(online)
+        {}
+
+        uint32_t postCount;
         QString name;
-        QString password; //need not posting back
-        bool online;      //record whether this user has loged in at client side
+        QString password;         //need not posting back
+        std::atomic<uint8_t> status;
+        std::atomic<bool> online; //whether this user has loged in
     };
 
 public:
     Forum();
     ~Forum();
 
-    const std::vector<Board>& GetBoards() const { return boards; }
+    const std::vector<std::pair<QString, QString>> GetBoards() const;
     std::optional<std::reference_wrapper<Board>>
     GetBoardByName(const QString& name);
 
@@ -39,7 +51,7 @@ public:
 
     bool DeletePost(const QString& id);
 
-    std::optional<std::reference_wrapper<const std::list<Comment>>>
+    std::optional<const std::list<Comment>>
     GetComments(const QString& id);
 
 
@@ -56,7 +68,7 @@ private:
     bool SetComments();
 
 private:
-    std::vector<Board> boards;
+    std::vector<std::unique_ptr<Board>> boards;
 
     static std::unordered_map<QString, UserInfo> users;
 };

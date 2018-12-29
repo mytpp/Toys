@@ -57,7 +57,7 @@ PostComponent::PostComponent(Post &post, const int index, QWidget *parent)
 
     if(status == infrastructure::MODERATOR
           && User::Get()->Id() == curModerator
-       || post.Comments().size() == 0
+       || post.CommentsNum() == 0
           && (status == infrastructure::COMMON_USER
               || status == infrastructure::MODERATOR)
           && User::Get()->Id() == post.AuthorId()

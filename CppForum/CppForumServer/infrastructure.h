@@ -25,7 +25,7 @@ namespace infrastructure {
     {
         Error  error;
         Status status;
-        uint16_t postCount;
+        uint32_t postCount;
         QString name;  //what about transmitting it in network?
     };
 

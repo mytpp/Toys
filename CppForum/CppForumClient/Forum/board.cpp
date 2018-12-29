@@ -88,7 +88,9 @@ bool Board::DeletePost(const QString id) {
         return false;
     }
 
+    if(it->second.AuthorId() == User::Get()->Id()) {
+        User::Get()->DeletePost();
+    }
     posts.erase(it);
-    User::Get()->DeletePost();
     return true;
 }

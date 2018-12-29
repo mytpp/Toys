@@ -61,7 +61,7 @@ bool UserInfoStorage::UpdateRecord(
     switch (index) {
     case 1: query.prepare("update userinfo set status = ? where id = ?");
         break;
-    case 2: query.prepare("update userinfo set postCount = ? where id = ?");
+    case 2: query.prepare("update userinfo set postsCount = ? where id = ?");
         break;
     case 3: query.prepare("update userinfo set name = ? where id = ?");
         break;
