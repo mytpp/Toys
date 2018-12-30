@@ -49,7 +49,6 @@ private:
 protected:
     QSqlQuery query;
     bool dataAvailable = false;
-    //bool inputSuccess = false;
     enum { IN, OUT, NONE } lastOpration = NONE;
 };
 

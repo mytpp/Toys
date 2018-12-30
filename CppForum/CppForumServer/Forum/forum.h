@@ -11,9 +11,8 @@
 #include "board.h"
 
 //to decouple, forum doesn't reference to 'User' class
-class Forum final: public QObject
+class Forum final
 {
-    Q_OBJECT
 private:
     struct UserInfo
     {

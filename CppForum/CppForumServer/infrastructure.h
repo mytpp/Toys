@@ -28,16 +28,6 @@ namespace infrastructure {
         uint32_t postCount;
         QString name;  //what about transmitting it in network?
     };
-
-    struct Profile final
-    {
-        QString id;
-        QString name;
-        Status status;
-        size_t postCount;
-    };
-
-
 }
 
 #endif // INFRASTRUCTURE_H

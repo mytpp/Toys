@@ -106,7 +106,7 @@ bool Forum::DismissModerator(const QString& board) {
         return false;
 
     it->second.status = infrastructure::COMMON_USER;
-    (*targetBoard)->SetModerator(tr("")); //empty str means no moderator
+    (*targetBoard)->SetModerator(""); //empty str means no moderator
     return true;
 }
 

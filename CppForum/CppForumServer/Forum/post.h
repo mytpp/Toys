@@ -11,10 +11,6 @@ public:
          const QString& title, const QString& content, const QDate birthday,
          const QString& board);
     void AddInitialComment(const Comment& comment) {comments.push_back(comment);}
-    //add itself to VBoxlayout
-    void Show(infrastructure::Status status = infrastructure::Status::ANONYMOUS);
-
-    void ShowComments();
 
     const QString& Id()       const { return id; }
     const QString& Poster()   const { return author; }

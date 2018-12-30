@@ -3,9 +3,9 @@
 
 CommentsStorage::CommentsStorage()
 {
-    query.exec("select * from comments");
-    query.last();
-    nextId = query.at() + 1;
+    query.exec("select max(id) from comments");
+    query.next();
+    nextId = query.value(0).toInt() + 1;
 }
 
 ForumStorage& CommentsStorage::operator <<(QVector<QString>& record) {

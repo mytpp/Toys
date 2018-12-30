@@ -5,7 +5,7 @@
 #include "forumserver.h"
 #include <QDebug>
 
-static constexpr bool first_initiate = false;
+static constexpr bool first_initiate = true;
 
 int main(int argc, char *argv[])
 {

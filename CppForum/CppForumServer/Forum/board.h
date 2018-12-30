@@ -13,8 +13,8 @@ public:
     void AddInitialPost(const Post& post) {posts.emplace(post.Id(), post);}
     void AddInitialComment(const Comment& comment, const QString& postId);
 
-    const QString&   ModeratorId() const { return moderatorId; }
-    const QString&   Name()        const { return name; }
+    const QString& ModeratorId() const { return moderatorId; }
+    const QString& Name()        const { return name; }
 
     std::map<QString, Post> GetPosts() const;
 
