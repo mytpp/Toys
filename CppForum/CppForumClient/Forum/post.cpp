@@ -24,6 +24,7 @@ const std::list<Comment> Post::Comments() const {
     std::list<Comment> comments;
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request += "GET comment\n\n";
@@ -62,6 +63,7 @@ const std::list<Comment> Post::Comments() const {
 bool Post::AddComment(const QString &content) {
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request += "POST comment\n\n";

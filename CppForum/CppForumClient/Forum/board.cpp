@@ -21,6 +21,7 @@ Post& Board::AddPost(const QString &title, const QString &content){
 
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request = "POST post\n\n";
@@ -67,6 +68,8 @@ bool Board::DeletePost(const QString id) {
 
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
+
     QByteArray request;
     request = "DELETE post\n\n";
     QVariantMap params;

@@ -13,6 +13,7 @@ Forum::Forum()
 {
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request += "GET board\n\n";
@@ -54,6 +55,7 @@ void Forum::Hide() {
 void Forum::SetCurBoard(const QString& name) {
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     //get current board moderator
@@ -85,6 +87,10 @@ void Forum::SetCurBoard(const QString& name) {
     }
 
     //get post
+    sock.reset(new QTcpSocket);
+    sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
+
     request = "GET post\n\n";
     QVariantMap params;
     params["board"] = name;
@@ -122,6 +128,7 @@ void Forum::SetCurBoard(const QString& name) {
 bool Forum::AssignModerator(const QString& id) {
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request = "PUT user\n\n";
@@ -159,6 +166,7 @@ bool Forum::DismissModerator() {
 
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request = "PUT user\n\n";
@@ -197,6 +205,7 @@ Forum& Forum::Get() {
 infrastructure::Response Forum::Verify(QString id, QString password){
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request = "GET user\n\n";
@@ -239,6 +248,7 @@ infrastructure::Response Forum::Verify(QString id, QString password){
 bool Forum::LogOut() {
     network::SockPtr sock(new QTcpSocket, &network::sockDeleter);
     sock->connectToHost("127.0.0.1", network::port);
+    sock->waitForConnected();
 
     QByteArray request;
     request = "DELETE user\n\n";

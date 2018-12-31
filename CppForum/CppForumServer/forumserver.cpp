@@ -2,50 +2,61 @@
 #include "Storage/forumstorage.h"
 #include "Forum/forum.h"
 #include <algorithm>
+#include <future>
+#include <thread>
+#include <iostream>
 #include <QJsonDocument>
 #include <QDebug>
+
+enum Method: uint8_t {
+    GET,
+    POST,
+    PUT,
+    DELETE
+};
+
+void EchoRequest(QTcpSocket* sendingsock);
+void EchoUserInfoRequest(QTcpSocket *sock, Method method);
+void EchoBoardRequest(QTcpSocket *sock, Method method);
+void EchoPostRequest(QTcpSocket *sock, Method method);
+void EchoCommentRequest(QTcpSocket *sock, Method method);
+
 
 ForumServer::ForumServer(int port, QObject *parent)
     :QTcpServer(parent)
 {
     listen(QHostAddress::AnyIPv4, port);
     qInfo()<<"Listening at "<<port<<"...";
+    std::cout<<"this id:"<<std::this_thread::get_id()<<std::endl;
 }
 
 void ForumServer::incomingConnection(qintptr socketDescriptor) {
-    QTcpSocket *sock = new QTcpSocket(this);
-    connect(sock, &QTcpSocket::disconnected,
-            this, &ForumServer::SlotDisconnected);
-    connect(sock, &QTcpSocket::readyRead,
-            this, &ForumServer::EchoRequest);
-
-    sock->setSocketDescriptor(socketDescriptor);
-    sockList.append(sock);
-}
-
-void ForumServer::SlotDisconnected() {
-    auto closingsock = qobject_cast<QTcpSocket*>(sender());
-    std::remove_if(sockList.begin(), sockList.end(),
-                   [closingsock](const QTcpSocket* sock) {
-        return sock == closingsock;
+    //start a new task in a different thread
+    std::thread t([socketDescriptor] {
+        qDebug()<<"start serving one.";
+        std::cout<<"this id:"<<std::this_thread::get_id()<<std::endl;
+        QTcpSocket *sock = new QTcpSocket();
+        sock->setSocketDescriptor(socketDescriptor);
+        sock->waitForReadyRead();
+        EchoRequest(sock);
+        sock->waitForBytesWritten();
+        delete sock;
     });
-    //may cause EchoRequest() access violation
-//    delete closingsock;
+    t.detach();
 }
 
-static inline ForumServer::Method MethodFromString(const QString& method) {
+static inline Method MethodFromString(const QString& method) {
     if(method == "GET")
-        return ForumServer::GET;
+        return GET;
     if(method == "POST")
-        return ForumServer::POST;
+        return POST;
     if (method == "PUT")
-        return ForumServer::PUT;
+        return PUT;
     if(method == "DELETE")
-        return ForumServer::DELETE;
+        return DELETE;
 }
 
-void ForumServer::EchoRequest() {
-    auto sendingsock = qobject_cast<QTcpSocket*>(sender());
+void EchoRequest(QTcpSocket* sendingsock) {
     QString header = QString::fromUtf8(sendingsock->readLine(1024));
     qInfo()<<"Receive header: "<<header;
     auto headerElements = header.trimmed().split(' ');
@@ -73,7 +84,7 @@ static inline QMap<QString, QVariant> ParseParams(QTcpSocket *sock) {
     return params.toMap();
 }
 
-void ForumServer::EchoUserInfoRequest(QTcpSocket *sock, Method method) {
+void EchoUserInfoRequest(QTcpSocket *sock, Method method) {
     QString statusLine;
     if (method == GET) {
         // echo login
@@ -165,7 +176,7 @@ void ForumServer::EchoUserInfoRequest(QTcpSocket *sock, Method method) {
     }
 }
 
-void ForumServer::EchoBoardRequest(QTcpSocket *sock, Method method) {
+void EchoBoardRequest(QTcpSocket *sock, Method method) {
     QString statusLine;
     if (method == GET) {
         // get boards info
@@ -194,7 +205,7 @@ void ForumServer::EchoBoardRequest(QTcpSocket *sock, Method method) {
     }
 }
 
-void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
+void EchoPostRequest(QTcpSocket *sock, Method method) {
     QString statusLine;
     if (method == GET) {
         // get posts under a board
@@ -295,7 +306,7 @@ void ForumServer::EchoPostRequest(QTcpSocket *sock, Method method) {
     }
 }
 
-void ForumServer::EchoCommentRequest(QTcpSocket *sock, Method method) {
+void EchoCommentRequest(QTcpSocket *sock, Method method) {
     QString statusLine;
     if (method == GET) {
         // get comments under a post
