@@ -2,10 +2,10 @@
 #include "Storage/forumstorage.h"
 #include "Forum/forum.h"
 #include <algorithm>
-#include <future>
-#include <thread>
-#include <iostream>
+//#include <thread>
+//#include <iostream>
 #include <QJsonDocument>
+#include <QThreadPool>
 #include <QDebug>
 
 enum Method: uint8_t {
@@ -15,35 +15,11 @@ enum Method: uint8_t {
     DELETE
 };
 
-void EchoRequest(QTcpSocket* sendingsock);
 void EchoUserInfoRequest(QTcpSocket *sock, Method method);
 void EchoBoardRequest(QTcpSocket *sock, Method method);
 void EchoPostRequest(QTcpSocket *sock, Method method);
 void EchoCommentRequest(QTcpSocket *sock, Method method);
 
-
-ForumServer::ForumServer(int port, QObject *parent)
-    :QTcpServer(parent)
-{
-    listen(QHostAddress::AnyIPv4, port);
-    qInfo()<<"Listening at "<<port<<"...";
-    std::cout<<"this id:"<<std::this_thread::get_id()<<std::endl;
-}
-
-void ForumServer::incomingConnection(qintptr socketDescriptor) {
-    //start a new task in a different thread
-    std::thread t([socketDescriptor] {
-        qDebug()<<"start serving one.";
-        std::cout<<"this id:"<<std::this_thread::get_id()<<std::endl;
-        QTcpSocket *sock = new QTcpSocket();
-        sock->setSocketDescriptor(socketDescriptor);
-        sock->waitForReadyRead();
-        EchoRequest(sock);
-        sock->waitForBytesWritten();
-        delete sock;
-    });
-    t.detach();
-}
 
 static inline Method MethodFromString(const QString& method) {
     if(method == "GET")
@@ -56,26 +32,62 @@ static inline Method MethodFromString(const QString& method) {
         return DELETE;
 }
 
-void EchoRequest(QTcpSocket* sendingsock) {
-    QString header = QString::fromUtf8(sendingsock->readLine(1024));
-    qInfo()<<"Receive header: "<<header;
-    auto headerElements = header.trimmed().split(' ');
-    auto sMethod   = headerElements[0];
-    auto sResource = headerElements[1];
-    Method method = MethodFromString(sMethod);
+class EchoRequest :public QRunnable
+{
+public:
+    EchoRequest(qintptr socketDescriptor)
+        :socketDescriptor(socketDescriptor)
+    { }
 
-    if(sResource == "user") {
-        EchoUserInfoRequest(sendingsock, method);
-    } else if (sResource == "board") {
-        EchoBoardRequest(sendingsock, method);
-    } else if (sResource == "post") {
-        EchoPostRequest(sendingsock, method);
-    } else if (sResource == "comment") {
-        EchoCommentRequest(sendingsock, method);
-    } else {
-        qInfo()<<"Unknown Resource Requested";
+    virtual void run() override {
+        //std::cout<<"this thread id :"<<std::this_thread::get_id()<<std::endl;
+        QTcpSocket *sock = new QTcpSocket();
+        sock->setSocketDescriptor(socketDescriptor);
+        sock->waitForReadyRead();
+
+        QString header = QString::fromUtf8(sock->readLine(1024));
+        qInfo()<<"Receive header: "<<header;
+        auto headerElements = header.trimmed().split(' ');
+        auto sMethod   = headerElements[0];
+        auto sResource = headerElements[1];
+        Method method = MethodFromString(sMethod);
+
+        if(sResource == "user") {
+            EchoUserInfoRequest(sock, method);
+        } else if (sResource == "board") {
+            EchoBoardRequest(sock, method);
+        } else if (sResource == "post") {
+            EchoPostRequest(sock, method);
+        } else if (sResource == "comment") {
+            EchoCommentRequest(sock, method);
+        } else {
+            qInfo()<<"Unknown Resource Requested";
+        }
+
+        sock->waitForBytesWritten();
+        delete sock;
     }
+
+private:
+    qintptr socketDescriptor;
+};
+
+
+ForumServer::ForumServer(int port, QObject *parent)
+    :QTcpServer(parent)
+{
+    listen(QHostAddress::AnyIPv4, port);
+    qInfo()<<"Listening at "<<port<<"...";
+    qInfo()<<"max num of thread in thread pool: "
+          <<QThreadPool::globalInstance()->maxThreadCount();
+    //std::cout<<"this thread id: "<<std::this_thread::get_id()<<std::endl;
 }
+
+void ForumServer::incomingConnection(qintptr socketDescriptor) {
+    //start a new task in the application's threadpool
+    QThreadPool::globalInstance()->start(new EchoRequest(socketDescriptor));
+}
+
 
 static inline QMap<QString, QVariant> ParseParams(QTcpSocket *sock) {
     sock->readLine(1024); //read '\n'
