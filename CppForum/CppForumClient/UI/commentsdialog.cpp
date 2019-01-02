@@ -27,14 +27,14 @@ CommentsDialog::CommentsDialog(Post& post, QWidget *parent)
     dialogLayout->addWidget(scrollArea);
 
     commentLayout = new QVBoxLayout(commentsArea);
-    commentLayout->setSpacing(20);
+    commentLayout->setSpacing(10);
 
     auto comments = post.Comments();
     std::for_each(comments.begin(), comments.end(),
                   [=, &comments](const Comment& comment){
         //visualize each comment
         AddGraphicalComment(
-                    comment.AuthorId(),
+                    comment.Author(),
                     comment.PublishDate().toString(),
                     comment.Content()
         );
@@ -67,6 +67,7 @@ void CommentsDialog::AddGraphicalComment(const QString &author,
     auto commentBlock = new QTextBrowser();//comment content
     commentBlock->setText(content);
     commentLayout->addWidget(commentBlock);
+    commentLayout->addSpacing(20);
 }
 
 

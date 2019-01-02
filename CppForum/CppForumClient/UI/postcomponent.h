@@ -36,8 +36,6 @@ private:
 
     QVBoxLayout *vLayout = nullptr;
     QHBoxLayout *hLayout = nullptr;
-
-    CommentsDialog *commentsDialog = nullptr;
 };
 
 #endif // POSTCOMPONENT_H

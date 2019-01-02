@@ -10,7 +10,6 @@ BoardsArea::BoardsArea(QWidget *parent) : QWidget(parent)
     boardsLayout = new QVBoxLayout(this);
     boardsLayout->setSpacing(20);
 
-
     auto boards = Forum::Get().GetBoardNames();
 
     std::for_each(boards.begin(), boards.end(),
@@ -27,7 +26,6 @@ BoardsArea::BoardsArea(QWidget *parent) : QWidget(parent)
         connect(button, &QPushButton::clicked, [boardName] {
             Forum::Get().SetCurBoard(boardName);
         });
-
         //after curBoard is set, refresh PostArea
         connect(button, &QPushButton::clicked,
                 qobject_cast<MainWindow*>(this->parent()),

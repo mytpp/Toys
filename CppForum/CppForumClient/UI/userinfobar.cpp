@@ -85,6 +85,7 @@ void UserInfoBar::Refresh() {
 
 void UserInfoBar::PopAssignDialog() {
     auto assignDialog = new QDialog;
+    assignDialog->setAttribute(Qt::WA_DeleteOnClose);
 
     auto hintLabel = new QLabel(assignDialog);
     hintLabel->setText(tr("Please input the new moderator id for current board"));

@@ -38,8 +38,6 @@ namespace infrastructure {
         Status status;
         size_t postCount;
     };
-
-
 }
 
 #endif // INFRASTRUCTURE_H

@@ -5,8 +5,6 @@
 
 PostEdit::PostEdit(QWidget *parent) : QWidget(parent)
 {
-    this->setFixedSize(500, 200);
-
     //draw the area to add new post
     titleLabel = new QLabel(tr("Title:"));
     contentEdit = new QTextEdit(this);

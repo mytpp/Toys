@@ -7,10 +7,6 @@
 class Comment
 {
 public:
-    Comment(const QString& author,
-            const QString& content,
-            const QDate birthday);
-
     Comment(const QString &author,
             const QString &authorId,
             const QString &content,
@@ -20,8 +16,6 @@ public:
     const QString& AuthorId()    const { return authorId; }
     const QString& Content()     const { return content;  }
     const QDate&   PublishDate() const { return birthday; }
-
-    static int CreateCommentId();
 
 private:
     QString author;

@@ -12,7 +12,7 @@ public:
     virtual ~User();
 
     bool LogIn();
-    void Logout();
+    bool Logout();
 
     virtual infrastructure::Profile GetProfile() =0;
 
@@ -30,7 +30,6 @@ private:
     QString id;
     QString password;
     QString name;
-    //Status status;
 
     static User *_user;
 

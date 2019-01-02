@@ -12,15 +12,6 @@
 class Forum final: public QObject
 {
     Q_OBJECT
-private:
-    struct UserInfo
-    {
-        infrastructure::Status status;
-        uint16_t postCount;
-        QString name;
-        QString password; //need not posting back
-    };
-
 public:
     Forum();
     ~Forum();

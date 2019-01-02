@@ -9,9 +9,6 @@ public:
     Moderator(size_t postCount = 0);
 
     virtual infrastructure::Profile GetProfile() override;
-
-private:
-
 };
 
 #endif // MODERATOR_H

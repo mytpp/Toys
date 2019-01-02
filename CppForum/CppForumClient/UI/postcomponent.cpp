@@ -38,7 +38,8 @@ PostComponent::PostComponent(Post &post, const int index, QWidget *parent)
     //connect 'comment' button to commentsdialog
     connect(comments, &QPushButton::clicked,
             [=, &post]{
-        commentsDialog = new CommentsDialog(post, this);
+        auto commentsDialog = new CommentsDialog(post, this);
+        commentsDialog->setAttribute(Qt::WA_DeleteOnClose);
         commentsDialog->show();
         connect(commentsDialog, &CommentsDialog::AddComment, [=]{
             comments->setText(QString::number(++commentsCount) + tr(" Comments"));

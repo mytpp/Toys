@@ -18,7 +18,6 @@ private:
     void PopDismissDialog();
 
 private:
-    QLabel *userId;
     QLabel *userName;
     QLabel *userStatus;
     QLabel *postCount;

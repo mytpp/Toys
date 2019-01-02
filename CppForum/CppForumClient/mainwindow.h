@@ -31,8 +31,6 @@ protected:
     virtual void closeEvent(QCloseEvent *event) override;
 
 private:
-    //bool elementsExist;
-
     //Since the QMainWindow class already has a layout,
     //we need to use a container(QWidget) to hold our own
     //layout (inside the QMainWindow's default layout)

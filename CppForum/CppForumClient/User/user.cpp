@@ -15,23 +15,24 @@ User::User()
 User::~User() = default;
 
 bool User::LogIn(){
-    qDebug()<<"logged in!";
     try {
         Forum::Get().Show();
     } catch (std::runtime_error& e) {
         qDebug()<<e.what();
         return false;
     }
+    qDebug()<<"logged in!";
     return true;
 }
 
-void User::Logout(){
+bool User::Logout(){
     if (!Forum::LogOut()) {
-        throw std::runtime_error("logout failed");
+        return false;
     }
     qDebug()<<"logout!";
     delete _user;
     Forum::Get().Hide();
+    return true;
 }
 
 
