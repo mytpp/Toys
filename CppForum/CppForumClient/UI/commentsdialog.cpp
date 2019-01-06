@@ -85,7 +85,7 @@ void CommentsDialog::OnAddComment(const QString &content) {
         //refresh the botton area
         delete publishButton;
         delete commentEdit;
-        AddGraphicalComment(User::Get()->Id(),
+        AddGraphicalComment(User::Get()->Name(),
                             QDate::currentDate().toString(),
                             content);
         CreateCommentEdit();

@@ -43,9 +43,9 @@ bool ForumStorage::InitiateUserInfo() {
                "password   varchar)"
             );
     if(success) {
-        qInfo()<<"create userinfo table successfully";
+        qDebug()<<"read userinfo table successfully";
     } else{
-        qInfo()<<"userinfo table failed";
+        qDebug()<<"userinfo table failed";
         return false;
     }
 
@@ -114,9 +114,9 @@ bool ForumStorage::InitiateBoards() {
                 "moderator varchar)"
              );
     if(success) {
-        qInfo()<<"create boards table successfully";
+        qDebug()<<"read boards table successfully";
     } else{
-        qInfo()<<"boards table failed";
+        qDebug()<<"boards table failed";
         return false;
     }
 
@@ -148,9 +148,9 @@ bool ForumStorage::InitiatePosts() {
                 "birthday varchar)"
              );
     if(success) {
-        qInfo()<<"create posts table successfully";
+        qDebug()<<"read posts table successfully";
     } else{
-        qInfo()<<"posts table failed";
+        qDebug()<<"posts table failed";
         return false;
     }
 
@@ -219,9 +219,9 @@ bool ForumStorage::InitiateComments() {
                 "birthday varchar)"
              );
     if(success) {
-        qInfo()<<"create comments table successfully";
+        qDebug()<<"read comments table successfully";
     } else{
-        qInfo()<<"comments table failed";
+        qDebug()<<"comments table failed";
         return false;
     }
 

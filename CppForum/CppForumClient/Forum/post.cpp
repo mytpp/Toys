@@ -53,8 +53,6 @@ const std::list<Comment> Post::Comments() const {
                            QDate::fromString(comment["date"].toString())
                        );
         }
-    } else {
-        throw std::runtime_error("Network error: Can't retrive comments.");
     }
 
     return comments;

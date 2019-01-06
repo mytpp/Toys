@@ -93,7 +93,9 @@ static inline QMap<QString, QVariant> ParseParams(QTcpSocket *sock) {
     sock->readLine(1024); //read '\n'
     QByteArray data = sock->readAll();
     QVariant params = QJsonDocument::fromJson(data).toVariant();
-    return params.toMap();
+    QVariantMap parsedParams = params.toMap();
+    qInfo()<<"params: "<<parsedParams;
+    return parsedParams;
 }
 
 void EchoUserInfoRequest(QTcpSocket *sock, Method method) {
@@ -101,7 +103,6 @@ void EchoUserInfoRequest(QTcpSocket *sock, Method method) {
     if (method == GET) {
         // echo login
         auto params = ParseParams(sock);
-        qInfo()<<"params: "<<params;
         QString id = params["id"].toString();
         QString password = params["password"].toString();
 
@@ -110,18 +111,21 @@ void EchoUserInfoRequest(QTcpSocket *sock, Method method) {
         case infrastructure::SUCCESS:
             statusLine = "200 OK\n\n"; break;
         case infrastructure::ID_NOT_FOUNTD:
+            qInfo()<<"Id_Not_Found";
             statusLine = "401 Id_Not_Found\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
                 qInfo()<<"Writing 'Id_Not_Found' failed!";
             }
             return;
         case infrastructure::WRONG_PASSWORD:
+            qInfo()<<"Wrong_Password";
             statusLine = "401 Wrong_Password\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
                 qInfo()<<"Writing 'Wrong_Password' failed!";
             }
             return;
         case infrastructure::ALREADY_ONLINE:
+            qInfo()<<"Already_Online";
             statusLine = "401 Already_Online\n\n";
             if(sock->write(statusLine.toUtf8()) == -1) {
                 qInfo()<<"Writing 'Already_Online' failed!";
@@ -222,7 +226,6 @@ void EchoPostRequest(QTcpSocket *sock, Method method) {
     if (method == GET) {
         // get posts under a board
         auto params = ParseParams(sock);
-        qInfo()<<"params: "<<params;
         QString boardName = params["board"].toString();
         auto board = Forum::Get().GetBoardByName(boardName);
         if (!board) {
@@ -257,7 +260,6 @@ void EchoPostRequest(QTcpSocket *sock, Method method) {
     } else if (method == POST) {
         //post a post under a board
         auto params = ParseParams(sock);
-        qInfo()<<"params: "<<params;
         QString boardName = params["board"].toString();
         QString userId = params["user"].toString();
         QString title = params["title"].toString();
@@ -293,7 +295,6 @@ void EchoPostRequest(QTcpSocket *sock, Method method) {
     } else if (method == DELETE) {
         //delete a post
         auto params = ParseParams(sock);
-        qInfo()<<"params: "<<params;
         QString userId = params["user"].toString();
         QString postId = params["post"].toString();
 
@@ -323,7 +324,6 @@ void EchoCommentRequest(QTcpSocket *sock, Method method) {
     if (method == GET) {
         // get comments under a post
         auto params = ParseParams(sock);
-        qInfo()<<"params: "<<params;
         QString postId = params["post"].toString();
 
         auto comments = Forum::Get().GetComments(postId);
@@ -354,7 +354,6 @@ void EchoCommentRequest(QTcpSocket *sock, Method method) {
     } else if (method == POST) {
         // publish a comment under a post
         auto params = ParseParams(sock);
-        qInfo()<<"params: "<<params;
         QString userId = params["user"].toString();
         QString postId = params["post"].toString();
         QString boardName = params["board"].toString();

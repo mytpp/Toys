@@ -37,8 +37,6 @@ Forum::Forum()
     } else {
         throw std::runtime_error("Network error: Can't retrive board names.");
     }
-
-    SetCurBoard(boardNames[0]);
 }
 
 Forum::~Forum() {}

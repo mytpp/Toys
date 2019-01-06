@@ -62,6 +62,9 @@ bool Board::DeletePost(const QString& id) {
     auto it = posts.find(id);
     if(it == posts.end())
         return false;
+//    if(it->second.Comments().size() != 0)
+//        return false;
+
     auto& storage = ForumStorage::GetStorage(ForumStorage::POSTS);
     if(!storage.RemoveRecord(it->second.Id()))
         return false;

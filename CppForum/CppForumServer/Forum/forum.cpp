@@ -170,7 +170,6 @@ infrastructure::Response Forum::Verify(QString id, QString password){
     auto it = users.find(id);
 
     if(it == users.end()) {                       //id not found
-        qInfo()<<"in not found";
         return { infrastructure::ID_NOT_FOUNTD };
     } else if(it->second.password != password) {  //wrong password
         return { infrastructure::WRONG_PASSWORD };
@@ -193,7 +192,6 @@ bool Forum::LogOut(QString id) {
     auto it = users.find(id);
 
     if(it == users.end()) {
-        qInfo()<<"in not found";
         return false;
     } else if (it->second.status == infrastructure::ANONYMOUS) {
         return true;
