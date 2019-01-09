@@ -108,6 +108,7 @@ void Forum::SetCurBoard(const QString& name) {
         QVariantList posts = QJsonDocument::fromJson(data).toVariant().toList();
         for (auto& rawPost: posts) {
             auto post = rawPost.toMap();
+            qDebug()<<QDate::fromString(post["date"].toString());
             curBoard->AddInitialPost({
                              post["id"].toString(),
                              post["author"].toString(),

@@ -126,7 +126,6 @@ def root_to_physical(path, in_default_root=True):
         path = '/' + path
     return '//' + config['ip'] + ':' + config['port'] + path
 
-# root must be a directory, or 'os.listdir(root)' will throw
 async def load_path(root, logical_root=None, cursor=None, 
                     in_default_root=True, is_tracker=True):
     global config
@@ -231,8 +230,8 @@ async def init_db():
     # except logical root path
     await cursor.execute('''
     create table if not exists filesystem (
-        logical_path  varcahr,     -- all logical path is link
-        physical_path varcahr,     -- is null if logical_path is not linked
+        logical_path  varchar,     -- all logical path is link
+        physical_path varchar,     -- is null if logical_path is not linked
         category      int,         -- 0: path, 1: file, 2: link
         ctime         varchar,
         mtime         varchar,
@@ -453,7 +452,12 @@ async def echo_rm(dst, writer):
     if dst[1] != '/': # logical path
         await cursor.execute('select physical_path from filesystem where logical_path = ?',
                         (dst,))
-        physical_path = (await cursor.fetchone())[0]
+        result = await cursor.fetchone()
+        if not result:
+            writer.write(b'E: 404 Path Not Found\n\n')
+            await writer.drain()
+            return
+        physical_path = result[0]
         if not physical_path or not physical_path.startswith('/'):
             await cursor.execute('''
                     delete from filesystem 
@@ -505,7 +509,7 @@ async def echo_cp(src, dst, reader, writer, size=0):
                 return
             logging.info('Send file successfully!')
         else:
-            writer.write(b'E: 404 File Not Found')
+            writer.write(b'E: 404 File Not Found\n\n')
             await writer.drain()
 
     elif dst_addr.split(':')[0] == config['ip']: # this is receiving side
@@ -554,8 +558,9 @@ async def echo_mv(src, dst, reader, writer, size=0):
     src_path = config['root'] + relative_path
     # allow only moving from root directory
     if not os.path.exists(src_path):
-        writer.write(b'E: 404 File Not Found')
+        writer.write(b'E: 404 File Not Found\n\n')
         await writer.drain()
+        return
     await echo_cp(src, dst, reader, writer, size)
     os.remove(src_path)
     if config['istracker']:
@@ -699,7 +704,6 @@ async def listen_heartbeat():
                 await metaDB.commit()
                 await cursor.close()
                 logging.info('Unmount host %s'% name)
-        # daemons = list(filter(daemon_filter, daemons))
 
 
 async def start_daemon():
@@ -875,11 +879,13 @@ async def cp(src, dst, delete_src=False):
         dst_path = '//' + ':'.join(dst_sock) + '/' + relative_path
         await send_file(src_path, dst_path, writer, loop)
         if await get_error(reader, writer):
+            writer.close()
             return
         if delete_src:
             os.remove(src_path)
             await rm(src)
         logging.info('Send file successfully!')
+        writer.close()
 
     else: # dst_is_here
         dst_path = extract_local_path_from(dst)
@@ -891,6 +897,7 @@ async def cp(src, dst, delete_src=False):
         writer.write(header.encode('utf-8'))
         await writer.drain()
         if await get_error(reader, writer):
+            writer.close()
             return
         # get response
         data = await reader.read()
@@ -938,6 +945,7 @@ async def cp(src, dst, delete_src=False):
             writer.write(b'E: 200 OK\n\n')
             await writer.drain()
         logging.info(f'Receive file {src_path!r} successfully')
+        writer.close()
 
         # if dst is in root, ln it in tracker's db
         if dst_path.find(config['root']) != -1:

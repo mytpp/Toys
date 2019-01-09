@@ -29,6 +29,7 @@ private:
     int index;  //the offset of this component at PostArea
     const QString id;
     QLabel *title = nullptr;
+    QLabel *date = nullptr;
     QTextBrowser *content = nullptr;
     int commentsCount;
     QPushButton *comments = nullptr;

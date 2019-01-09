@@ -246,7 +246,7 @@ void EchoPostRequest(QTcpSocket *sock, Method method) {
             postInfo["authorId"] = post.AuthorId();
             postInfo["title"] = post.Title();
             postInfo["content"] = post.Content();
-            postInfo["data"] = post.Date().toString();
+            postInfo["date"] = post.Date().toString();
             postInfo["comment"] = post.Comments().size();
             response.append(postInfo);
         }

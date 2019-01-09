@@ -14,12 +14,19 @@ PostComponent::PostComponent(Post &post, const int index, QWidget *parent)
 {
     vLayout = new QVBoxLayout(this);
     hLayout = new QHBoxLayout();
+    auto headerLayout = new QHBoxLayout();
 
     //title
     title = new QLabel(this);
     title->setText(post.Title() + tr("(Posted by ") +
                    post.Poster() + tr(")") );
-    vLayout->addWidget(title);
+    date = new QLabel(this);
+    date->setText(post.Date().toString());
+    headerLayout->addWidget(title);
+    headerLayout->addStretch();
+    headerLayout->addWidget(date);
+    qDebug()<<post.Date().toString();
+    vLayout->addLayout(headerLayout);
 
     //content
     content = new QTextBrowser(this);
@@ -43,8 +50,8 @@ PostComponent::PostComponent(Post &post, const int index, QWidget *parent)
         commentsDialog->show();
         connect(commentsDialog, &CommentsDialog::AddComment, [=]{
             comments->setText(QString::number(++commentsCount) + tr(" Comments"));
-            auto status = User::Get()->GetProfile().status;
-            if(deletePost && status != infrastructure::MODERATOR) {
+            auto id = User::Get()->GetProfile().id;
+            if(deletePost && id != Forum::Get().GetCurBoard().ModeratorId()) {
                 delete deletePost;
                 deletePost = nullptr;
             }
