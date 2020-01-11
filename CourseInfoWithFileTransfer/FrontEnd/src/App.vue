@@ -13,7 +13,8 @@
 </template>
 
 <script>
-import PersonalInfo from './components/PersonalInfo';
+// @ is an alias to /src
+import PersonalInfo from '@/components/PersonalInfo';
 
 export default {
   name: 'App',
